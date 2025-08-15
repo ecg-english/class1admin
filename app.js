@@ -83,6 +83,7 @@
     try {
       const response = await api.get(API_ENDPOINTS.STUDENTS);
       state.students = response;
+      console.log('Loaded students:', state.students);
     } catch (error) {
       console.error('Failed to load students:', error);
     }
@@ -135,7 +136,9 @@
 
   async function updateStudent(id, updates){
     try {
+      console.log('Updating student:', id, updates);
       const response = await api.put(`${API_ENDPOINTS.STUDENTS}/${id}`, updates);
+      console.log('Update response:', response);
       const index = state.students.findIndex(s => s.id === id);
       if (index !== -1) {
         state.students[index] = response;
@@ -564,9 +567,15 @@
     dlg.showModal();
   }
   function openEdit(id){
+    console.log('Opening edit for student ID:', id);
+    console.log('Available students:', state.students);
     editingId = id;
     const s = state.students.find(x=>x.id===id);
-    if(!s) return;
+    if(!s) {
+      console.error('Student not found:', id);
+      return;
+    }
+    console.log('Found student:', s);
     $('#editName').value = s.name || '';
     $('#editInstructor').value = s.instructorId || '';
     $('#editNote').value = s.note || '';
