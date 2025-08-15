@@ -361,21 +361,39 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
   width: 100%;
   max-width: 400px;
 }
-.student-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
-}
-.student-table th,
-.student-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.student-table th {
-  background: rgba(255,255,255,.05);
-  font-weight: 600;
-}
+  /* Student table styles */
+  .student-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-top: 16px;
+  }
+
+  .student-table th,
+  .student-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
+  .student-table th {
+    background: rgba(255,255,255,.05);
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .student-table td {
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .student-table tr:hover {
+    background: rgba(255,255,255,.02);
+  }
 
 /* スマホ版の生徒管理テーブル */
 @media (max-width: 768px) {
@@ -533,6 +551,42 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
     border: 1px solid rgba(0,0,0,.1);
     color: var(--ink);
   }
+
+  /* PC版テーブルのライトモード改善 */
+  [data-theme="light"] .student-table {
+    background: var(--card);
+    border: 1px solid rgba(0,0,0,.1);
+  }
+
+  [data-theme="light"] .student-table th {
+    background: rgba(0,0,0,.05);
+    color: var(--ink);
+    border-bottom: 1px solid rgba(0,0,0,.1);
+  }
+
+  [data-theme="light"] .student-table td {
+    border-bottom: 1px solid rgba(0,0,0,.05);
+    color: var(--ink);
+  }
+
+  [data-theme="light"] .payment-toggle.paid,
+  [data-theme="light"] .survey-toggle.sent {
+    background: rgba(16,185,129,.15);
+    color: #065f46;
+    border: 1px solid rgba(16,185,129,.3);
+  }
+
+  [data-theme="light"] .payment-toggle.unpaid,
+  [data-theme="light"] .survey-toggle.unsent {
+    background: rgba(239,68,68,.15);
+    color: #991b1b;
+    border: 1px solid rgba(239,68,68,.3);
+  }
+
+  [data-theme="light"] .payment-toggle:hover,
+  [data-theme="light"] .survey-toggle:hover {
+    filter: brightness(0.9);
+  }
   
   .mobile-edit-btn:hover {
     background: rgba(255,255,255,.1);
@@ -577,13 +631,15 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
 /* Toggle buttons for manager */
 .payment-toggle,
 .survey-toggle {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 80px;
+  text-align: center;
 }
 
 .payment-toggle.paid,
@@ -602,4 +658,33 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
 .survey-toggle:hover {
   filter: brightness(1.2);
   transform: scale(1.05);
+} 
+
+/* 生徒編集ダイアログのライトモード改善 */
+[data-theme="light"] dialog {
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,.1);
+}
+
+[data-theme="light"] .dlg-head {
+  color: var(--ink);
+  border-bottom: 1px solid rgba(0,0,0,.1);
+}
+
+[data-theme="light"] .dlg-body {
+  color: var(--ink);
+}
+
+[data-theme="light"] .fld label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+[data-theme="light"] .hint {
+  color: var(--accent);
+  background: rgba(14, 165, 233, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
 } 

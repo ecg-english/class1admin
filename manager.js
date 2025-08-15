@@ -182,9 +182,9 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${escapeHtml(student.name)}</td>
-        <td>${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</td>
         <td>${escapeHtml(instructor ? instructor.name : '未設定')}</td>
         <td>${escapeHtml(student.memberNumber || '')}</td>
+        <td>${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</td>
         <td>${escapeHtml(student.note || '')}</td>
         <td>
           <button class="payment-toggle ${payment.paid ? 'paid' : 'unpaid'}" data-student="${student.id}" data-type="payment">
