@@ -76,15 +76,40 @@ router.post('/', (req, res) => {
 // Update student
 router.put('/:id', (req, res) => {
   const { id } = req.params;
-  const { name, instructorId, memberNumber, email, note, registrationDate } = req.body;
+  const { name, instructorId, email, note, registrationDate } = req.body;
   
-  const sql = 'UPDATE students SET name = ?, instructor_id = ?, member_number = ?, email = ?, note = ?, registration_date = ? WHERE id = ?';
-  db.getDb().run(sql, [name, instructorId, memberNumber, email, note, registrationDate, id], function(err) {
+  // First check if student exists
+  const checkSql = 'SELECT * FROM students WHERE id = ?';
+  db.getDb().get(checkSql, [id], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
+    
+    if (!row) {
+      res.status(404).json({ error: 'Student not found' });
+      return;
+    }
+    
+    // Update student (preserve existing member_number)
+    const sql = 'UPDATE students SET name = ?, instructor_id = ?, email = ?, note = ?, registration_date = ? WHERE id = ?';
+    db.getDb().run(sql, [name, instructorId, email, note, registrationDate, id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      // Return updated student data
+      res.json({ 
+        id, 
+        name, 
+        instructorId, 
+        memberNumber: row.member_number, 
+        email, 
+        note, 
+        registrationDate 
+      });
+    });
   });
 });
 
