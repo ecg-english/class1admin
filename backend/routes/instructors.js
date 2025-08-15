@@ -16,13 +16,14 @@ router.get('/', (req, res) => {
 
 // Add new instructor
 router.post('/', (req, res) => {
-  const { id, name } = req.body;
+  const { name } = req.body;
   
-  if (!id || !name) {
-    res.status(400).json({ error: 'ID and name are required' });
+  if (!name) {
+    res.status(400).json({ error: 'Name is required' });
     return;
   }
   
+  const id = 'i_' + Math.random().toString(36).slice(2, 10);
   const sql = 'INSERT INTO instructors (id, name) VALUES (?, ?)';
   db.getDb().run(sql, [id, name], function(err) {
     if (err) {

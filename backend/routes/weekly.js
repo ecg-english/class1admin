@@ -36,9 +36,13 @@ router.get('/:weekKey', (req, res) => {
 });
 
 // Update weekly check
-router.post('/:weekKey/:studentId', (req, res) => {
-  const { weekKey, studentId } = req.params;
-  const { dm, dmDate, lesson, lessonDate } = req.body;
+router.post('/', (req, res) => {
+  const { weekKey, studentId, dm, dmDate, lesson, lessonDate } = req.body;
+  
+  if (!weekKey || !studentId) {
+    res.status(400).json({ error: 'weekKey and studentId are required' });
+    return;
+  }
   
   const sql = `
     INSERT OR REPLACE INTO weekly_checks (week_key, student_id, dm, dm_date, lesson, lesson_date)

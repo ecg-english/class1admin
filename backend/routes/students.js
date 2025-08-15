@@ -21,20 +21,55 @@ router.get('/', (req, res) => {
 
 // Add new student
 router.post('/', (req, res) => {
-  const { id, name, instructorId, memberNumber, email, note, registrationDate } = req.body;
+  const { name, instructorId, email, note, registrationDate } = req.body;
   
-  if (!id || !name) {
-    res.status(400).json({ error: 'ID and name are required' });
+  if (!name) {
+    res.status(400).json({ error: 'Name is required' });
     return;
   }
   
-  const sql = 'INSERT INTO students (id, name, instructor_id, member_number, email, note, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
-  db.getDb().run(sql, [id, name, instructorId, memberNumber, email, note, registrationDate], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
+  const id = 's_' + Math.random().toString(36).slice(2, 10);
+  
+  // Generate member number
+  const getNextMemberNumber = () => {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT member_number FROM students WHERE member_number IS NOT NULL ORDER BY member_number DESC LIMIT 1';
+      db.getDb().get(sql, [], (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        
+        let nextNumber = 'k11';
+        if (row && row.member_number) {
+          const current = row.member_number;
+          const letter = current.charAt(0);
+          const number = parseInt(current.slice(1));
+          
+          if (number < 99) {
+            nextNumber = letter + (number + 1);
+          } else if (letter < 'z') {
+            nextNumber = String.fromCharCode(letter.charCodeAt(0) + 1) + '11';
+          } else {
+            nextNumber = 'k11';
+          }
+        }
+        resolve(nextNumber);
+      });
+    });
+  };
+  
+  getNextMemberNumber().then(memberNumber => {
+    const sql = 'INSERT INTO students (id, name, instructor_id, member_number, email, note, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    db.getDb().run(sql, [id, name, instructorId, memberNumber, email, note, registrationDate], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
+    });
+  }).catch(err => {
+    res.status(500).json({ error: err.message });
   });
 });
 
