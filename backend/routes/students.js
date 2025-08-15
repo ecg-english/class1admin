@@ -21,35 +21,35 @@ router.get('/', (req, res) => {
 
 // Add new student
 router.post('/', (req, res) => {
-  const { id, name, instructorId, memberNumber, email, note } = req.body;
+  const { id, name, instructorId, memberNumber, email, note, registrationDate } = req.body;
   
   if (!id || !name) {
     res.status(400).json({ error: 'ID and name are required' });
     return;
   }
   
-  const sql = 'INSERT INTO students (id, name, instructor_id, member_number, email, note) VALUES (?, ?, ?, ?, ?, ?)';
-  db.getDb().run(sql, [id, name, instructorId, memberNumber, email, note], function(err) {
+  const sql = 'INSERT INTO students (id, name, instructor_id, member_number, email, note, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  db.getDb().run(sql, [id, name, instructorId, memberNumber, email, note, registrationDate], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ id, name, instructorId, memberNumber, email, note });
+    res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
   });
 });
 
 // Update student
 router.put('/:id', (req, res) => {
   const { id } = req.params;
-  const { name, instructorId, memberNumber, email, note } = req.body;
+  const { name, instructorId, memberNumber, email, note, registrationDate } = req.body;
   
-  const sql = 'UPDATE students SET name = ?, instructor_id = ?, member_number = ?, email = ?, note = ? WHERE id = ?';
-  db.getDb().run(sql, [name, instructorId, memberNumber, email, note, id], function(err) {
+  const sql = 'UPDATE students SET name = ?, instructor_id = ?, member_number = ?, email = ?, note = ?, registration_date = ? WHERE id = ?';
+  db.getDb().run(sql, [name, instructorId, memberNumber, email, note, registrationDate, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ id, name, instructorId, memberNumber, email, note });
+    res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
   });
 });
 

@@ -497,6 +497,42 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
     font-size: 12px;
     cursor: pointer;
   }
+
+  /* Light mode improvements for manager page */
+  [data-theme="light"] .student-card-header {
+    border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+
+  [data-theme="light"] .member-number {
+    background: var(--accent);
+    color: #ffffff;
+  }
+
+  [data-theme="light"] .info-label {
+    color: var(--muted);
+  }
+
+  [data-theme="light"] .info-value {
+    color: var(--ink);
+  }
+
+  [data-theme="light"] .mobile-payment-toggle.paid,
+  [data-theme="light"] .mobile-survey-toggle.sent {
+    background: rgba(16,185,129,.2);
+    color: #065f46;
+  }
+
+  [data-theme="light"] .mobile-payment-toggle.unpaid,
+  [data-theme="light"] .mobile-survey-toggle.unsent {
+    background: rgba(239,68,68,.2);
+    color: #991b1b;
+  }
+
+  [data-theme="light"] .mobile-edit-btn {
+    background: rgba(0,0,0,.05);
+    border: 1px solid rgba(0,0,0,.1);
+    color: var(--ink);
+  }
   
   .mobile-edit-btn:hover {
     background: rgba(255,255,255,.1);

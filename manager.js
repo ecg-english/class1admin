@@ -182,6 +182,7 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${escapeHtml(student.name)}</td>
+        <td>${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</td>
         <td>${escapeHtml(instructor ? instructor.name : '未設定')}</td>
         <td>${escapeHtml(student.memberNumber || '')}</td>
         <td>${escapeHtml(student.note || '')}</td>
@@ -210,6 +211,10 @@
           <div class="member-number">${escapeHtml(student.memberNumber || '')}</div>
         </div>
         <div class="student-info">
+          <div class="info-item">
+            <div class="info-label">登録日</div>
+            <div class="info-value">${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</div>
+          </div>
           <div class="info-item">
             <div class="info-label">担当講師</div>
             <div class="info-value">${escapeHtml(instructor ? instructor.name : '未設定')}</div>
@@ -333,10 +338,9 @@
     save(); renderDashboard();
   }
 
-  function updateStudent(id, patch){
-    const s = state.students.find(x=>x.id===id);
-    if(!s) return;
-    Object.assign(s, patch);
+  function updateStudent(id, data){
+    const student = state.students.find(x=>x.id===id);
+    if(student) Object.assign(student, data);
     save(); renderDashboard();
   }
 
@@ -368,6 +372,8 @@
     $('#newStudentName').value = '';
     $('#newStudentInstructor').value = '';
     $('#newStudentNote').value = '';
+    $('#newStudentEmail').value = '';
+    $('#newStudentRegistrationDate').value = '';
     updateInstructorSelects();
     addStudentDlg.showModal();
   }
@@ -384,6 +390,7 @@
     $('#editStudentNote').value = student.note || '';
     $('#editStudentMemberNumber').value = student.memberNumber || '';
     $('#editStudentEmail').value = student.email || '';
+    $('#editStudentRegistrationDate').value = student.registrationDate || '';
     $('#editStudentPayment').value = payment.paid.toString();
     $('#editStudentSurvey').value = payment.survey.toString();
     
@@ -481,7 +488,8 @@
       name, 
       instructorId: $('#newStudentInstructor').value || null, 
       note: $('#newStudentNote').value.trim(),
-      email: $('#newStudentEmail').value.trim()
+      email: $('#newStudentEmail').value.trim(),
+      registrationDate: $('#newStudentRegistrationDate').value.trim() || undefined
     });
     addStudentDlg.close();
   });
@@ -506,6 +514,9 @@
   );
   $('#editStudentEmail').addEventListener('input', e=>
     editingStudentId && updateStudent(editingStudentId, {email:e.target.value})
+  );
+  $('#editStudentRegistrationDate').addEventListener('input', e=>
+    editingStudentId && updateStudent(editingStudentId, {registrationDate:e.target.value})
   );
   $('#editStudentPayment').addEventListener('change', e=>
     editingStudentId && updatePayment(editingStudentId, e.target.value === 'true', 

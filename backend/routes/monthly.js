@@ -59,7 +59,7 @@ router.get('/manager/:monthKey', (req, res) => {
   
   const sql = `
     SELECT 
-      s.id, s.name, s.member_number, s.email, s.note,
+      s.id, s.name, s.member_number, s.email, s.note, s.registration_date,
       i.name as instructor_name,
       mc.paid, mc.last_paid, mc.survey
     FROM students s
@@ -81,6 +81,7 @@ router.get('/manager/:monthKey', (req, res) => {
       memberNumber: row.member_number,
       email: row.email,
       note: row.note,
+      registrationDate: row.registration_date || '',
       instructorId: row.instructor_id,
       instructorName: row.instructor_name,
       paid: Boolean(row.paid),

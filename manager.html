@@ -59,6 +59,7 @@
                 <th>生徒名</th>
                 <th>担当講師</th>
                 <th>会員番号</th>
+                <th>登録日</th>
                 <th>メモ</th>
                 <th>入金状況</th>
                 <th>アンケート回答</th>
@@ -101,6 +102,10 @@
         <label for="newStudentEmail">メールアドレス（任意）</label>
         <input id="newStudentEmail" type="email" placeholder="例：student@example.com" />
       </div>
+      <div class="fld">
+        <label for="newStudentRegistrationDate">登録日（任意）</label>
+        <input id="newStudentRegistrationDate" type="date" />
+      </div>
       <div class="hint">後から編集・削除できます。</div>
     </div>
     <div class="dlg-actions">
@@ -134,6 +139,10 @@
       <div class="fld">
         <label for="editStudentEmail">メールアドレス（任意）</label>
         <input id="editStudentEmail" type="email" />
+      </div>
+      <div class="fld">
+        <label for="editStudentRegistrationDate">登録日（任意）</label>
+        <input id="editStudentRegistrationDate" type="date" />
       </div>
       <div class="fld">
         <label for="editStudentPayment">入金状況</label>

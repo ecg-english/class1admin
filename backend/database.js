@@ -27,6 +27,7 @@ function init() {
         member_number TEXT UNIQUE,
         email TEXT,
         note TEXT,
+        registration_date TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (instructor_id) REFERENCES instructors (id)
       )
