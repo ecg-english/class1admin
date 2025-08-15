@@ -1,6 +1,6 @@
 // API Configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-render-app-name.onrender.com/api'
+  ? 'https://class1admin-backend.onrender.com/api'
   : 'http://localhost:3000/api';
 
 // API endpoints
