@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECG・JCG｜アンケート結果</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .results-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .results-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .results-title {
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .survey-result {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .member-info {
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .submission-date {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .result-field {
+      margin-bottom: 16px;
+    }
+    .result-label {
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    .result-value {
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .result-value.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+    .satisfaction-stars {
+      display: flex;
+      gap: 4px;
+    }
+    .star {
+      color: var(--accent);
+      font-size: 18px;
+    }
+    .star.empty {
+      color: var(--muted);
+    }
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .search-container {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      color: var(--ink);
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .month-selector {
+      padding: 8px 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .month-selector:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    
+    .back-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.8);
+      padding: 8px 16px;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .back-button:hover {
+      background: rgba(0,0,0,0.9);
+      transform: translateY(-1px);
+    }
+    
+    @media (max-width: 768px) {
+      .back-button {
+        top: 10px;
+        left: 10px;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme toggle button -->
+  <button class="theme-toggle" id="themeToggle" title="テーマ切り替え">
+    🌙
+  </button>
+  
+  <!-- Back Button -->
+  <a href="manager.html" class="back-button">← マネージャーページへ</a>
+  
+  <div class="app">
+    <div class="results-container">
+      <div class="results-header">
+        <h1 class="results-title">Class1 アンケート結果</h1>
+      </div>
+      
+      <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="会員番号で検索...">
+        <select class="month-selector" id="monthSelector">
+          <option value="all">全期間</option>
+        </select>
+      </div>
+      
+      <div id="resultsList">
+        <!-- アンケート結果がここに動的に追加されます -->
+      </div>
+      
+      <div id="noResults" class="no-results" style="display:none;">
+        <h3>まだアンケート結果がありません</h3>
+        <p>生徒がアンケートを送信すると、ここに結果が表示されます。</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (()=>{
+      const $ = (s, root=document)=>root.querySelector(s);
+      const $$ = (s, root=document)=>Array.from(root.querySelectorAll(s));
+      
+      let allSurveys = [];
+      let filteredSurveys = [];
+      
+      function loadSurveyResults(){
+        allSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
+        updateMonthSelector();
+        filterSurveys();
+      }
+      
+      function updateMonthSelector() {
+        const monthSelector = $('#monthSelector');
+        const months = new Set();
+        
+        allSurveys.forEach(survey => {
+          const date = new Date(survey.submittedAt);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          months.add(monthKey);
+        });
+        
+        // Clear existing options except "all"
+        monthSelector.innerHTML = '<option value="all">全期間</option>';
+        
+        // Add month options
+        Array.from(months).sort().reverse().forEach(month => {
+          const [year, monthNum] = month.split('-');
+          const monthName = `${year}年${monthNum}月`;
+          const option = document.createElement('option');
+          option.value = month;
+          option.textContent = monthName;
+          monthSelector.appendChild(option);
+        });
+      }
+      
+      function filterSurveys() {
+        const searchTerm = $('#searchInput').value.toLowerCase();
+        const selectedMonth = $('#monthSelector').value;
+        
+        filteredSurveys = allSurveys.filter(survey => {
+          // Search filter
+          const matchesSearch = !searchTerm || 
+            survey.memberNumber.toLowerCase().includes(searchTerm) ||
+            (survey.studentName && survey.studentName.toLowerCase().includes(searchTerm));
+          
+          // Month filter
+          const matchesMonth = selectedMonth === 'all' || (() => {
+            const date = new Date(survey.submittedAt);
+            const surveyMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return surveyMonth === selectedMonth;
+          })();
+          
+          return matchesSearch && matchesMonth;
+        });
+        
+        displayResults();
+      }
+      
+      function displayResults() {
+        const resultsList = $('#resultsList');
+        const noResults = $('#noResults');
+        
+        if(filteredSurveys.length === 0) {
+          resultsList.style.display = 'none';
+          noResults.style.display = 'block';
+          return;
+        }
+        
+        resultsList.style.display = 'block';
+        noResults.style.display = 'none';
+        resultsList.innerHTML = '';
+        
+        // Sort by submission date (newest first)
+        filteredSurveys.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+        
+        filteredSurveys.forEach((survey, index) => {
+          const resultDiv = document.createElement('div');
+          resultDiv.className = 'survey-result';
+          
+          const submissionDate = new Date(survey.submittedAt);
+          const formattedDate = `${submissionDate.getFullYear()}/${String(submissionDate.getMonth()+1).padStart(2,'0')}/${String(submissionDate.getDate()).padStart(2,'0')} ${String(submissionDate.getHours()).padStart(2,'0')}:${String(submissionDate.getMinutes()).padStart(2,'0')}`;
+          
+          resultDiv.innerHTML = `
+            <div class="result-header">
+              <div class="member-info">会員番号: ${escapeHtml(survey.memberNumber)}</div>
+              <div class="submission-date">${formattedDate}</div>
+            </div>
+            ${survey.studentName ? `<div class="result-field">
+              <div class="result-label">お名前</div>
+              <div class="result-value">${escapeHtml(survey.studentName)}</div>
+            </div>` : ''}
+            
+            <div class="result-field">
+              <div class="result-label">講師に対する満足度</div>
+              <div class="result-value">
+                ${survey.satisfaction ? 
+                  `<div class="satisfaction-stars">
+                    ${Array.from({length: 5}, (_, i) => 
+                      `<span class="star ${i < survey.satisfaction ? '' : 'empty'}">★</span>`
+                    ).join('')}
+                    (${survey.satisfaction}/5)
+                  </div>` : 
+                  '<span class="result-value empty">未回答</span>'
+                }
+              </div>
+            </div>
+            
+            <div class="result-field">
+              <div class="result-label">推奨意向 (NPS)</div>
+              <div class="result-value">
+                ${survey.npsScore !== null && survey.npsScore !== undefined ? 
+                  `<span style="color: ${getNPSColor(survey.npsScore)}; font-weight: bold;">${survey.npsScore}/10</span>` : 
+                  '<span class="result-value empty">未回答</span>'
+                }
+              </div>
+            </div>
+            
+            <div class="result-field">
+              <div class="result-label">講師に対するフィードバック</div>
+              <div class="result-value">
+                ${survey.instructorFeedback ? escapeHtml(survey.instructorFeedback) : '<span class="result-value empty">未回答</span>'}
+              </div>
+            </div>
+            
+            <div class="result-field">
+              <div class="result-label">レッスン内容に関するフィードバック</div>
+              <div class="result-value">
+                ${survey.lessonFeedback ? escapeHtml(survey.lessonFeedback) : '<span class="result-value empty">未回答</span>'}
+              </div>
+            </div>
+            
+            <div class="result-field">
+              <div class="result-label">来月学びたいこと</div>
+              <div class="result-value">
+                ${survey.learningGoals && survey.learningGoals.length > 0 ? 
+                  `<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${survey.learningGoals.map(goal => `<span style="background: rgba(110, 231, 255, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getGoalText(goal)}</span>`).join('')}
+                  </div>` : 
+                  '<span class="result-value empty">未回答</span>'
+                }
+              </div>
+            </div>
+            
+            <div class="result-field">
+              <div class="result-label">その他 (自由記述)</div>
+              <div class="result-value">
+                ${survey.otherFeedback ? escapeHtml(survey.otherFeedback) : '<span class="result-value empty">未回答</span>'}
+              </div>
+            </div>
+          `;
+          
+          resultsList.appendChild(resultDiv);
+        });
+      }
+      
+
+      
+      function escapeHtml(str){ 
+        return (str??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;','\'':'&#39;' }[s])); 
+      }
+      
+      function getNPSColor(score) {
+        if (score <= 1) return '#dc2626';
+        if (score <= 3) return '#ea580c';
+        if (score <= 5) return '#ca8a04';
+        if (score <= 7) return '#16a34a';
+        if (score <= 9) return '#059669';
+        return '#047857';
+      }
+      
+      function getGoalText(goal) {
+        const goalTexts = {
+          'conversation': '会話スキルを伸ばしたい',
+          'grammar': '文法の正確さを高めたい',
+          'vocabulary': '語彙を増やしたい',
+          'pronunciation': '発音を改善したい',
+          'listening': 'リスニングを鍛えたい',
+          'exam': '試験対策(英検/TOEICなど)',
+          'culture': '文化についてももっと学びたい'
+        };
+        return goalTexts[goal] || goal;
+      }
+      
+      // Event listeners
+      $('#searchInput').addEventListener('input', filterSurveys);
+      $('#monthSelector').addEventListener('change', filterSurveys);
+      
+      
+      // Theme management
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // Update theme toggle button
+        const themeToggle = $('#themeToggle');
+        if (themeToggle) {
+          themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+          themeToggle.title = theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え';
+        }
+      }
+
+      function initTheme() {
+        // Load saved theme or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        setTheme(theme);
+      }
+
+      // Theme toggle
+      $('#themeToggle').addEventListener('click', ()=>{
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+      });
+
+      // Initialize theme
+      initTheme();
+      
+      // Load results on page load
+      loadSurveyResults();
+      
+      // Refresh results every 30 seconds
+      setInterval(loadSurveyResults, 30000);
+    })();
+  </script>
+</body>
+</html> 

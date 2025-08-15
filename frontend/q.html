@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECG・JCG｜生徒アンケート</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .survey-container {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 8px;
+    }
+    .survey-form {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 8px;
+    }
+    .survey-title {
+      text-align: center;
+      margin-bottom: 32px;
+      color: var(--accent);
+    }
+    .survey-subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    
+    /* セクション囲い */
+    .section {
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    [data-theme="light"] .section {
+      background: rgba(0,0,0,.02);
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    
+    /* 基本情報セクション */
+    .basic-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 768px) {
+      .basic-info {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* 満足度セクション */
+    .satisfaction-section {
+      text-align: center;
+    }
+    .satisfaction-question {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: var(--ink);
+    }
+    .star-container {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .star-btn {
+      width: 48px;
+      height: 48px;
+      border: 2px solid rgba(255,255,255,.2);
+      background: transparent;
+      color: rgba(255,255,255,.3);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 28px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+    
+    [data-theme="light"] .star-btn {
+      border: 2px solid rgba(0,0,0,.2);
+      color: rgba(0,0,0,.3);
+    }
+    .star-btn::before {
+      content: '★';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0) rotate(180deg);
+      color: #ffd700;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+      filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+      z-index: 2;
+    }
+    .star-btn:hover {
+      border-color: #ffd700;
+      transform: scale(1.15);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    .star-btn:hover::before {
+      transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+    .star-btn.selected {
+      border-color: #ffd700;
+      background: transparent;
+      color: transparent;
+      transform: scale(1.05);
+    }
+    .star-btn.selected::before {
+      transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    }
+    .star-btn:not(.selected) {
+      border-color: rgba(255,255,255,.2);
+      background: transparent;
+      color: rgba(255,255,255,.3);
+      transform: scale(1);
+    }
+    .star-btn:not(.selected)::before {
+      transform: translate(-50%, -50%) scale(0) rotate(180deg);
+    }
+    .satisfaction-scale {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    /* NPSセクション */
+    .nps-section {
+      text-align: center;
+    }
+    .nps-question {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+    .nps-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 0 20px;
+    }
+    .nps-slider {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,.1);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .nps-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(110, 231, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+    .nps-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(110, 231, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+    .nps-slider:hover::-webkit-slider-thumb {
+      transform: scale(1.2);
+      box-shadow: 0 0 15px rgba(110, 231, 255, 0.8);
+    }
+    .nps-slider:hover::-moz-range-thumb {
+      transform: scale(1.2);
+      box-shadow: 0 0 15px rgba(110, 231, 255, 0.8);
+    }
+    .nps-value-display {
+      min-width: 60px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      border: 2px solid;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .nps-value-display::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,.1) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+    .nps-value-display.updated::before {
+      transform: translateX(100%);
+    }
+    
+    /* NPS値に応じた色分け */
+    .nps-value-display[data-value="0"] { background: #dc2626; border-color: #ef4444; }
+    .nps-value-display[data-value="1"] { background: #dc2626; border-color: #ef4444; }
+    .nps-value-display[data-value="2"] { background: #ea580c; border-color: #f97316; }
+    .nps-value-display[data-value="3"] { background: #ea580c; border-color: #f97316; }
+    .nps-value-display[data-value="4"] { background: #ca8a04; border-color: #eab308; }
+    .nps-value-display[data-value="5"] { background: #ca8a04; border-color: #eab308; }
+    .nps-value-display[data-value="6"] { background: #16a34a; border-color: #22c55e; }
+    .nps-value-display[data-value="7"] { background: #16a34a; border-color: #22c55e; }
+    .nps-value-display[data-value="8"] { background: #059669; border-color: #10b981; }
+    .nps-value-display[data-value="9"] { background: #059669; border-color: #10b981; }
+    .nps-value-display[data-value="10"] { background: #047857; border-color: #059669; }
+    
+    .nps-scale {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    
+    /* スマホ版のNPS調整 */
+    @media (max-width: 768px) {
+      .nps-slider-container {
+        padding: 0 10px;
+        gap: 12px;
+      }
+      .nps-value-display {
+        min-width: 50px;
+        height: 35px;
+        font-size: 16px;
+      }
+      .nps-slider::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+      }
+      .nps-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+      }
+    }
+    
+    /* フィードバックセクション */
+    .feedback-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .feedback-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .feedback-label {
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .feedback-textarea {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--ink);
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,.08);
+    }
+    
+    /* 学習目標セクション */
+    .learning-goals {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .goal-item {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .goal-item:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.2);
+    }
+    .goal-item.selected {
+      background: rgba(110, 231, 255, 0.1);
+      border-color: var(--accent);
+    }
+    .goal-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    .goal-text {
+      font-size: 14px;
+      color: var(--ink);
+    }
+    
+    /* その他セクション */
+    .other-section {
+      margin-top: 20px;
+    }
+    
+    .required {
+      color: var(--danger);
+    }
+    .optional {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .submit-btn {
+      width: 100%;
+      margin-top: 24px;
+      padding: 16px;
+      font-size: 16px;
+    }
+    .success-screen {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .success-icon {
+      font-size: 64px;
+      color: var(--ok);
+      margin-bottom: 24px;
+    }
+    
+    /* Star animation */
+    @keyframes starPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    
+    /* Language switcher */
+    .language-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      background: rgba(0,0,0,0.8);
+      padding: 8px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .lang-btn {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .lang-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .lang-btn:hover:not(.active) {
+      background: rgba(255,255,255,0.1);
+      color: var(--ink);
+    }
+    
+    @media (max-width: 768px) {
+      .language-switcher {
+        top: 10px;
+        right: 10px;
+        padding: 6px;
+      }
+      .lang-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme toggle button -->
+  <button class="theme-toggle" id="themeToggle" title="テーマ切り替え">
+    🌙
+  </button>
+  
+  <!-- Language Switcher -->
+  <div class="language-switcher">
+    <button class="lang-btn active" data-lang="ja">日本語</button>
+    <button class="lang-btn" data-lang="en">English</button>
+  </div>
+  
+  <div class="app">
+    <div class="survey-container" id="surveyContainer">
+      <div class="survey-form" id="surveyForm">
+        <h1 class="survey-title">Class1 アンケート</h1>
+        <p class="survey-subtitle">回答時間:約2~3分/スマホ対応</p>
+        
+        <form id="questionnaireForm">
+          <!-- 基本情報セクション -->
+          <div class="section">
+            <div class="section-title">基本情報</div>
+                      <div class="basic-info">
+            <div class="fld">
+              <label for="memberNumber" id="memberNumberLabel">会員番号 <span class="required">*</span></label>
+              <input id="memberNumber" required placeholder="例：k11" />
+            </div>
+            <div class="fld">
+              <label for="studentName" id="studentNameLabel">お名前 <span class="optional">（任意）</span></label>
+              <input id="studentName" placeholder="例：山田 太郎" />
+            </div>
+          </div>
+          </div>
+          
+          <!-- 満足度セクション -->
+          <div class="section">
+            <div class="section-title">満足度</div>
+            <div class="satisfaction-section">
+              <div class="satisfaction-question">現状の講師に対する満足度 <span class="required">*</span></div>
+              <div class="star-container">
+                <button type="button" class="star-btn" data-rating="1">☆</button>
+                <button type="button" class="star-btn" data-rating="2">☆</button>
+                <button type="button" class="star-btn" data-rating="3">☆</button>
+                <button type="button" class="star-btn" data-rating="4">☆</button>
+                <button type="button" class="star-btn" data-rating="5">☆</button>
+              </div>
+              <div class="satisfaction-scale">1: 非常に不満 〜 5: 非常に満足</div>
+              <input type="hidden" id="satisfaction" />
+            </div>
+          </div>
+          
+          <!-- NPSセクション -->
+          <div class="section">
+            <div class="section-title">推奨意向</div>
+            <div class="nps-section">
+              <div class="nps-question">このサービスを友人に勧めたいと思いますか？ <span class="required">*</span></div>
+              <div class="nps-slider-container">
+                <input type="range" class="nps-slider" id="npsSlider" min="0" max="10" value="0" step="1">
+                <div class="nps-value-display" id="npsValueDisplay" data-value="0">0</div>
+              </div>
+              <div class="nps-scale">0 (全く勧めない) 〜 10 (強く勧めたい)</div>
+              <input type="hidden" id="npsScore" />
+            </div>
+          </div>
+          
+          <!-- フィードバックセクション -->
+          <div class="section">
+            <div class="section-title">フィードバック</div>
+            <div class="feedback-grid">
+              <div class="feedback-item">
+                <div class="feedback-label">講師に対するフィードバック</div>
+                <textarea id="instructorFeedback" class="feedback-textarea" placeholder="例:説明がわかりやすかった/もっと会話量を増やしてほしい"></textarea>
+              </div>
+              <div class="feedback-item">
+                <div class="feedback-label">レッスン内容に関するフィードバック</div>
+                <textarea id="lessonFeedback" class="feedback-textarea" placeholder="例:発音練習を追加したい/宿題の量を調整してほしい"></textarea>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 学習目標セクション -->
+          <div class="section">
+            <div class="section-title">来月学びたいこと</div>
+            <div class="learning-goals">
+              <div class="goal-item" data-goal="conversation">
+                <input type="checkbox" class="goal-checkbox" id="goal-conversation">
+                <label for="goal-conversation" class="goal-text" id="goal-text-conversation">会話スキルを伸ばしたい</label>
+              </div>
+              <div class="goal-item" data-goal="grammar">
+                <input type="checkbox" class="goal-checkbox" id="goal-grammar">
+                <label for="goal-grammar" class="goal-text" id="goal-text-grammar">文法の正確さを高めたい</label>
+              </div>
+              <div class="goal-item" data-goal="vocabulary">
+                <input type="checkbox" class="goal-checkbox" id="goal-vocabulary">
+                <label for="goal-vocabulary" class="goal-text" id="goal-text-vocabulary">語彙を増やしたい</label>
+              </div>
+              <div class="goal-item" data-goal="pronunciation">
+                <input type="checkbox" class="goal-checkbox" id="goal-pronunciation">
+                <label for="goal-pronunciation" class="goal-text" id="goal-text-pronunciation">発音を改善したい</label>
+              </div>
+              <div class="goal-item" data-goal="listening">
+                <input type="checkbox" class="goal-checkbox" id="goal-listening">
+                <label for="goal-listening" class="goal-text" id="goal-text-listening">リスニングを鍛えたい</label>
+              </div>
+              <div class="goal-item" data-goal="exam">
+                <input type="checkbox" class="goal-checkbox" id="goal-exam">
+                <label for="goal-exam" class="goal-text" id="goal-text-exam">試験対策(英検/TOEICなど)</label>
+              </div>
+              <div class="goal-item" data-goal="culture">
+                <input type="checkbox" class="goal-checkbox" id="goal-culture">
+                <label for="goal-culture" class="goal-text" id="goal-text-culture">文化についてももっと学びたい</label>
+              </div>
+            </div>
+          </div>
+          
+          <!-- その他セクション -->
+          <div class="section other-section">
+            <div class="section-title">その他 (自由記述)</div>
+            <div class="feedback-item">
+              <textarea id="otherFeedback" class="feedback-textarea" placeholder="例:海外旅行で困らない接客英語を練習したい"></textarea>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn accent submit-btn">送信する</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Success Screen -->
+    <div class="survey-container" id="successScreen" style="display:none;">
+      <div class="survey-form">
+        <div class="success-screen">
+          <div class="success-icon">✓</div>
+          <h2>送信完了です！</h2>
+          <p>アンケートへのご協力ありがとうございました。</p>
+          <p>いただいたご意見を今後のサービス向上に活用させていただきます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (()=>{
+      const $ = (s, root=document)=>root.querySelector(s);
+      const $$ = (s, root=document)=>Array.from(root.querySelectorAll(s));
+      
+      // Language texts
+      const texts = {
+                  ja: {
+            title: "Class1 アンケート",
+            subtitle: "回答時間:約2~3分/スマホ対応",
+            basicInfo: "基本情報",
+            memberNumber: "会員番号",
+            name: "お名前",
+            optional: "（任意）",
+            satisfaction: "満足度",
+            satisfactionQuestion: "現状の講師に対する満足度",
+            satisfactionScale: "1: 非常に不満 〜 5: 非常に満足",
+            nps: "推奨意向",
+            npsQuestion: "このサービスを友人に勧めたいと思いますか？",
+            npsScale: "0 (全く勧めない) 〜 10 (強く勧めたい)",
+            feedback: "フィードバック",
+            instructorFeedback: "講師に対するフィードバック",
+            lessonFeedback: "レッスン内容に関するフィードバック",
+            learningGoals: "来月学びたいこと",
+            conversation: "会話スキルを伸ばしたい",
+            grammar: "文法の正確さを高めたい",
+            vocabulary: "語彙を増やしたい",
+            pronunciation: "発音を改善したい",
+            listening: "リスニングを鍛えたい",
+            exam: "試験対策(英検/TOEICなど)",
+            culture: "文化についてももっと学びたい",
+            other: "その他 (自由記述)",
+            submit: "送信する",
+            success: "送信完了です！",
+            successMessage: "アンケートへのご協力ありがとうございました。",
+            successMessage2: "いただいたご意見を今後のサービス向上に活用させていただきます。",
+            required: "*",
+            example: "例：",
+            exampleName: "山田 太郎",
+            exampleMember: "k11",
+            exampleInstructor: "説明がわかりやすかった/もっと会話量を増やしてほしい",
+            exampleLesson: "発音練習を追加したい/宿題の量を調整してほしい",
+            exampleOther: "海外旅行で困らない接客英語を練習したい"
+          },
+                  en: {
+            title: "Class1 Survey",
+            subtitle: "Response time: ~2-3 min / Mobile compatible",
+            basicInfo: "Basic Information",
+            memberNumber: "Member Number",
+            name: "Name",
+            optional: "(Optional)",
+            satisfaction: "Satisfaction",
+            satisfactionQuestion: "How satisfied are you with your current instructor?",
+            satisfactionScale: "1: Very Dissatisfied ~ 5: Very Satisfied",
+            nps: "Recommendation Intent",
+            npsQuestion: "How likely are you to recommend this service to a friend?",
+            npsScale: "0 (Not at all likely) ~ 10 (Extremely likely)",
+            feedback: "Feedback",
+            instructorFeedback: "Feedback for instructor",
+            lessonFeedback: "Feedback regarding lesson content",
+            learningGoals: "What you want to learn next month",
+            conversation: "I want to improve my conversation skills",
+            grammar: "I want to improve grammatical accuracy",
+            vocabulary: "I want to increase my vocabulary",
+            pronunciation: "I want to improve my pronunciation",
+            listening: "I want to train my listening skills",
+            exam: "Exam preparation (JLPT, KANKEN etc.)",
+            culture: "I want to learn more about culture",
+            other: "Other (Free description)",
+            submit: "Submit",
+            success: "Submission Complete!",
+            successMessage: "Thank you for participating in our survey.",
+            successMessage2: "Your feedback will be used to improve our services.",
+            required: "*",
+            example: "e.g., ",
+            exampleName: "Yamada Taro",
+            exampleMember: "k11",
+            exampleInstructor: "The explanation was easy to understand/I want more conversation practice",
+            exampleLesson: "I want to add pronunciation practice/I want you to adjust the amount of homework",
+            exampleOther: "I want to practice customer service Japanese so I don't have trouble when traveling Japan"
+          }
+      };
+      
+      let currentLang = 'ja';
+      let selectedRating = 0;
+      let selectedNPS = null;
+      let selectedGoals = [];
+      
+      // Star rating buttons
+      $$('.star-btn').forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+          const rating = index + 1; // 0-based index to 1-based rating
+          selectedRating = rating;
+          
+          // Add click animation
+          btn.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            btn.style.transform = '';
+          }, 150);
+          
+          // Update visual state immediately
+          const allStars = $$('.star-btn');
+          allStars.forEach(b => b.classList.remove('selected'));
+          
+          // Add selected class to stars up to the rating
+          for(let i = 0; i < rating; i++) {
+            allStars[i].classList.add('selected');
+          }
+          
+          // Optional: Add staggered effect for visual appeal
+          allStars.forEach((star, i) => {
+            if (i < rating) {
+              setTimeout(() => {
+                star.style.animation = 'starPulse 0.3s ease-in-out';
+                setTimeout(() => {
+                  star.style.animation = '';
+                }, 300);
+              }, i * 50);
+            }
+          });
+          
+          // Update hidden input
+          $('#satisfaction').value = rating;
+        });
+        
+        // Add hover sound effect (visual feedback)
+        btn.addEventListener('mouseenter', () => {
+          btn.style.animation = 'starPulse 0.3s ease-in-out';
+        });
+        
+        btn.addEventListener('animationend', () => {
+          btn.style.animation = '';
+        });
+      });
+      
+      // NPS slider
+      const npsSlider = $('#npsSlider');
+      const npsValueDisplay = $('#npsValueDisplay');
+      
+      function updateNPSDisplay(value) {
+        selectedNPS = value;
+        npsValueDisplay.textContent = value;
+        npsValueDisplay.setAttribute('data-value', value);
+        
+        console.log('NPS updated to:', value); // Debug log
+        
+        // Add animation effect
+        npsValueDisplay.classList.remove('updated');
+        setTimeout(() => {
+          npsValueDisplay.classList.add('updated');
+        }, 10);
+        
+        // Update hidden input
+        $('#npsScore').value = value;
+      }
+      
+      npsSlider.addEventListener('input', (e) => {
+        updateNPSDisplay(parseInt(e.target.value));
+      });
+      
+      npsSlider.addEventListener('change', (e) => {
+        updateNPSDisplay(parseInt(e.target.value));
+      });
+      
+      // Initialize display
+      updateNPSDisplay(0);
+      selectedNPS = 0; // Initialize selectedNPS
+      
+      // Language switcher
+      function updateLanguage(lang) {
+        currentLang = lang;
+        const t = texts[lang];
+        
+        // Update language buttons
+        $$('.lang-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+        
+        // Update all text content
+        $('.survey-title').textContent = t.title;
+        $('.survey-subtitle').textContent = t.subtitle;
+        
+        // Section titles
+        $$('.section-title').forEach((title, index) => {
+          if (index === 0) title.textContent = t.basicInfo;
+          else if (index === 1) title.textContent = t.satisfaction;
+          else if (index === 2) title.textContent = t.nps;
+          else if (index === 3) title.textContent = t.feedback;
+          else if (index === 4) title.textContent = t.learningGoals;
+          else if (index === 5) title.textContent = t.other;
+        });
+        
+        // Labels and placeholders
+        $('#memberNumberLabel').innerHTML = `${t.memberNumber} <span class="required">${t.required}</span>`;
+        $('#studentNameLabel').innerHTML = `${t.name} <span class="optional">${t.optional}</span>`;
+        $('#memberNumber').placeholder = t.example + t.exampleMember;
+        $('#studentName').placeholder = t.example + t.exampleName;
+        
+        // Satisfaction section
+        $('.satisfaction-question').innerHTML = `${t.satisfactionQuestion} <span class="required">${t.required}</span>`;
+        $('.satisfaction-scale').textContent = t.satisfactionScale;
+        
+        // NPS section
+        $('.nps-question').innerHTML = `${t.npsQuestion} <span class="required">${t.required}</span>`;
+        $('.nps-scale').textContent = t.npsScale;
+        
+        // Feedback section
+        $$('.feedback-label').forEach((label, index) => {
+          if (index === 0) label.textContent = t.instructorFeedback;
+          else if (index === 1) label.textContent = t.lessonFeedback;
+        });
+        
+        $('#instructorFeedback').placeholder = t.example + t.exampleInstructor;
+        $('#lessonFeedback').placeholder = t.example + t.exampleLesson;
+        
+        // Learning goals
+        $('#goal-text-conversation').textContent = t.conversation;
+        $('#goal-text-grammar').textContent = t.grammar;
+        $('#goal-text-vocabulary').textContent = t.vocabulary;
+        $('#goal-text-pronunciation').textContent = t.pronunciation;
+        $('#goal-text-listening').textContent = t.listening;
+        $('#goal-text-exam').textContent = t.exam;
+        $('#goal-text-culture').textContent = t.culture;
+        
+        // Other section
+        $('#otherFeedback').placeholder = t.example + t.exampleOther;
+        
+        // Submit button
+        $('.submit-btn').textContent = t.submit;
+        
+        // Success screen
+        $('#successScreen h2').textContent = t.success;
+        $$('#successScreen p').forEach((p, index) => {
+          if (index === 0) p.textContent = t.successMessage;
+          else if (index === 1) p.textContent = t.successMessage2;
+        });
+        
+        // Required indicators
+        $$('.required').forEach(req => {
+          req.textContent = t.required;
+        });
+        
+        // Optional indicators
+        $$('.optional').forEach(opt => {
+          opt.textContent = t.optional;
+        });
+      }
+      
+      // Language button event listeners
+      $$('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          updateLanguage(btn.dataset.lang);
+        });
+      });
+      
+      // Initialize with Japanese
+      updateLanguage('ja');
+      
+      // Learning goals
+      $$('.goal-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const checkbox = item.querySelector('.goal-checkbox');
+          const goal = item.dataset.goal;
+          
+          checkbox.checked = !checkbox.checked;
+          
+          if(checkbox.checked) {
+            item.classList.add('selected');
+            if(!selectedGoals.includes(goal)) {
+              selectedGoals.push(goal);
+            }
+          } else {
+            item.classList.remove('selected');
+            selectedGoals = selectedGoals.filter(g => g !== goal);
+          }
+        });
+      });
+      
+      // Form submission
+      $('#questionnaireForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        console.log('Form submission started'); // Debug log
+        console.log('selectedRating:', selectedRating); // Debug log
+        console.log('selectedNPS:', selectedNPS); // Debug log
+        
+        const memberNumber = $('#memberNumber').value.trim();
+        if(!memberNumber) {
+          alert(currentLang === 'ja' ? '会員番号は必須です。' : 'Member number is required.');
+          return;
+        }
+        
+        if(selectedRating === 0) {
+          alert(currentLang === 'ja' ? '満足度を選択してください。' : 'Please select your satisfaction level.');
+          return;
+        }
+        
+        if(selectedNPS === null || selectedNPS === undefined) {
+          alert(currentLang === 'ja' ? '推奨意向を選択してください。' : 'Please select your recommendation intent.');
+          return;
+        }
+        
+        try {
+          const formData = {
+            memberNumber: memberNumber,
+            studentName: $('#studentName').value.trim(),
+            satisfaction: selectedRating,
+            npsScore: selectedNPS,
+            instructorFeedback: $('#instructorFeedback').value.trim(),
+            lessonFeedback: $('#lessonFeedback').value.trim(),
+            learningGoals: selectedGoals,
+            otherFeedback: $('#otherFeedback').value.trim(),
+            submittedAt: new Date().toISOString()
+          };
+          
+          console.log('Form data to be saved:', formData); // Debug log
+          
+          // Save to localStorage
+          const existingSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
+          existingSurveys.push(formData);
+          localStorage.setItem('student_surveys', JSON.stringify(existingSurveys));
+          
+          console.log('Saved to localStorage. Total surveys:', existingSurveys.length); // Debug log
+          
+          // Update manager data
+          updateManagerSurveyStatus(memberNumber);
+          
+          // Show success screen
+          $('#surveyContainer').style.display = 'none';
+          $('#successScreen').style.display = 'block';
+          console.log('Success screen displayed'); // Debug log
+        } catch (error) {
+          console.error('Error during form submission:', error);
+          alert(currentLang === 'ja' ? '送信中にエラーが発生しました。' : 'An error occurred during submission.');
+        }
+      });
+      
+      function updateManagerSurveyStatus(memberNumber) {
+        // Load manager data
+        const managerData = localStorage.getItem('ecg_jcg_checklist_v2');
+        if(managerData) {
+          const data = JSON.parse(managerData);
+          
+          // Find student by member number
+          const student = data.students.find(s => s.memberNumber === memberNumber);
+          if(student) {
+            // Get current month
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            
+            // Initialize monthly data if not exists
+            if(!data.monthly) data.monthly = {};
+            if(!data.monthly[currentMonth]) data.monthly[currentMonth] = {};
+            if(!data.monthly[currentMonth][student.id]) {
+              data.monthly[currentMonth][student.id] = { paid: false, lastPaid: '', survey: false };
+            }
+            
+            // Update survey status for current month
+            data.monthly[currentMonth][student.id].survey = true;
+            
+            // Save back to localStorage
+            localStorage.setItem('ecg_jcg_checklist_v2', JSON.stringify(data));
+          }
+        }
+      }
+      
+      // Theme management
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        
+        // Update theme toggle button
+        const themeToggle = $('#themeToggle');
+        if (themeToggle) {
+          themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+          themeToggle.title = theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え';
+        }
+      }
+
+      function initTheme() {
+        // Load saved theme or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        setTheme(theme);
+      }
+
+      // Theme toggle
+      $('#themeToggle').addEventListener('click', ()=>{
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+      });
+
+      // Initialize theme
+      initTheme();
+    })();
+  </script>
+</body>
+</html> 

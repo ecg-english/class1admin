@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECG・JCG｜Class1 チェックリスト</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Theme toggle button -->
+  <button class="theme-toggle" id="themeToggle" title="テーマ切り替え">
+    🌙
+  </button>
+  
+  <div class="app" id="app">
+    <header>
+      <div class="bar">
+        <div class="title">ECG・JCG <span class="pill">Class1 チェックリスト</span></div>
+        <div class="seg" role="tablist" aria-label="表示モード">
+          <button id="tabWeekly" class="active" role="tab" aria-selected="true" aria-controls="panelWeekly">週次（講師）</button>
+          <button id="tabMonthly" role="tab" aria-selected="false" aria-controls="panelMonthly">月次（マネージャー）</button>
+          <button id="tabCalendar" role="tab" aria-selected="false" aria-controls="panelCalendar">カレンダー</button>
+        </div>
+        <div class="grow"></div>
+        <button class="btn accent" id="btnAdd">＋ 生徒追加</button>
+        <button class="btn ghost" id="btnInstructor">講師管理</button>
+      </div>
+      <div class="bar controls">
+        <div class="range" id="rangeWeekly" aria-live="polite">
+          <button class="btn ghost" id="prevWeek" title="前の週">◀</button>
+          <div>
+            <strong id="weekLabel">週</strong>
+            <div class="cap" id="weekRange">-</div>
+          </div>
+          <button class="btn ghost" id="nextWeek" title="次の週">▶</button>
+        </div>
+        <div class="range" id="rangeMonthly" style="display:none" aria-live="polite">
+          <button class="btn ghost" id="prevMonth" title="前の月">◀</button>
+          <div>
+            <strong id="monthLabel">月</strong>
+            <div class="cap" id="monthRange">-</div>
+          </div>
+          <button class="btn ghost" id="nextMonth" title="次の月">▶</button>
+        </div>
+        <div class="range" id="rangeCalendar" style="display:none" aria-live="polite">
+          <button class="btn ghost" id="prevCalendar" title="前の月">◀</button>
+          <div>
+            <strong id="calendarLabel">月</strong>
+            <div class="cap" id="calendarRange">-</div>
+          </div>
+          <button class="btn ghost" id="nextCalendar" title="次の月">▶</button>
+        </div>
+        <div class="grow"></div>
+      </div>
+      
+      <!-- Instructor filter for calendar and weekly -->
+      <div class="instructor-filter" id="instructorFilterContainer" style="display:none;">
+        <label for="instructorFilter">講師フィルター:</label>
+        <select id="instructorFilter">
+          <option value="all">全講師</option>
+        </select>
+      </div>
+    </header>
+
+    <main>
+      <div class="cards" id="cards"></div>
+      <div class="empty" id="empty" style="display:none"><p>生徒がいません。右上の「生徒追加」から登録してください。</p></div>
+      <div class="calendar" id="calendar" style="display:none"></div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Dialog -->
+  <dialog id="dlg">
+    <div class="dlg-head">生徒を追加</div>
+    <div class="dlg-body">
+      <div class="fld">
+        <label for="studentName">生徒名</label>
+        <input id="studentName" placeholder="例：山田 太郎" />
+      </div>
+      <div class="fld">
+        <label for="studentInstructor">担当講師</label>
+        <select id="studentInstructor">
+          <option value="">講師を選択</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="studentNote">メモ（任意）</label>
+        <input id="studentNote" placeholder="例：火曜午後が都合良い" />
+      </div>
+      <div class="fld">
+        <label for="studentEmail">メールアドレス（任意）</label>
+        <input id="studentEmail" type="email" placeholder="例：student@example.com" />
+      </div>
+      <div class="hint">後から編集・削除できます。</div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ghost" id="cancelDlg">キャンセル</button>
+      <button class="btn ok" id="saveDlg">保存</button>
+    </div>
+  </dialog>
+
+  <!-- Edit Dialog -->
+  <dialog id="editDlg">
+    <div class="dlg-head">生徒を編集</div>
+    <div class="dlg-body">
+      <div class="fld">
+        <label for="editName">生徒名</label>
+        <input id="editName" />
+      </div>
+      <div class="fld">
+        <label for="editInstructor">担当講師</label>
+        <select id="editInstructor">
+          <option value="">講師を選択</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="editNote">メモ（任意）</label>
+        <input id="editNote" />
+      </div>
+      <div class="fld">
+        <label for="editMemberNumber">会員番号</label>
+        <input id="editMemberNumber" readonly style="background: rgba(255,255,255,.05);" />
+      </div>
+      <div class="fld">
+        <label for="editEmail">メールアドレス（任意）</label>
+        <input id="editEmail" type="email" />
+      </div>
+      <div class="hint">変更はすぐ保存されます。</div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn danger" id="deleteStudent">削除</button>
+      <button class="btn ok" id="closeEdit">閉じる</button>
+    </div>
+  </dialog>
+
+  <!-- Instructor Management Dialog -->
+  <dialog id="instructorDlg">
+    <div class="dlg-head">講師管理</div>
+    <div class="dlg-body">
+      <div class="fld">
+        <label for="newInstructorName">新しい講師名</label>
+        <input id="newInstructorName" placeholder="例：Alex / Sakura" />
+      </div>
+      <button class="btn accent" id="addInstructor">講師を追加</button>
+      
+      <div style="margin-top: 20px;">
+        <h4>登録済み講師一覧</h4>
+        <div id="instructorList"></div>
+      </div>
+      
+      <div class="hint">講師を削除すると、その講師を担当している生徒の講師が「未設定」になります。</div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ok" id="closeInstructorDlg">閉じる</button>
+    </div>
+  </dialog>
+
+  <div class="footer">
+    <span class="cap">ヒント：週次＝講師が使う「DMで日程調整」「レッスン実施」。月次＝<a href="manager.html" style="color: var(--accent); text-decoration: underline;">マネージャー専用ページ</a>をご利用ください。</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

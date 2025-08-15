@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECG・JCG｜マネージャー専用ページ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Theme toggle button -->
+  <button class="theme-toggle" id="themeToggle" title="テーマ切り替え">
+    🌙
+  </button>
+  
+  <div class="app" id="app">
+    <!-- Login Screen -->
+    <div class="manager-login" id="loginScreen">
+      <h1>ECG・JCG マネージャー専用ページ</h1>
+      <form class="login-form" id="loginForm">
+        <div class="fld">
+          <label for="password">パスワード</label>
+          <input type="password" id="password" placeholder="パスワードを入力" required />
+        </div>
+        <button type="submit" class="btn accent">ログイン</button>
+      </form>
+      <button class="btn ghost" id="btnBackToMainFromLogin">← 講師ページへ戻る</button>
+    </div>
+
+    <!-- Manager Dashboard -->
+    <div id="managerDashboard" style="display:none;">
+      <header>
+        <div class="bar">
+          <div class="title">ECG・JCG <span class="pill">マネージャー専用</span></div>
+          <div class="grow"></div>
+          <button class="btn ghost" id="btnBackToMain">← 講師ページへ</button>
+          <button class="btn ghost" id="btnLogout">ログアウト</button>
+          <button class="btn accent" id="btnAddStudent">＋ 生徒追加</button>
+          <button class="btn ghost" id="btnViewSurveyResults">アンケート結果</button>
+        </div>
+        <div class="bar controls">
+          <div class="range" aria-live="polite">
+            <button class="btn ghost" id="prevMonth" title="前の月">◀</button>
+            <div>
+              <strong id="monthLabel">月</strong>
+              <div class="cap" id="monthRange">-</div>
+            </div>
+            <button class="btn ghost" id="nextMonth" title="次の月">▶</button>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <div class="student-management">
+          <h2>生徒管理</h2>
+          <table class="student-table">
+            <thead>
+              <tr>
+                <th>生徒名</th>
+                <th>担当講師</th>
+                <th>会員番号</th>
+                <th>メモ</th>
+                <th>入金状況</th>
+                <th>アンケート回答</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <!-- 生徒データがここに動的に追加されます -->
+            </tbody>
+          </table>
+          
+          <!-- スマホ版用カード表示 -->
+          <div class="student-cards" id="studentCards">
+            <!-- スマホ版の生徒カードがここに動的に追加されます -->
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Student Dialog -->
+  <dialog id="addStudentDlg">
+    <div class="dlg-head">生徒を追加</div>
+    <div class="dlg-body">
+      <div class="fld">
+        <label for="newStudentName">生徒名</label>
+        <input id="newStudentName" placeholder="例：山田 太郎" />
+      </div>
+      <div class="fld">
+        <label for="newStudentInstructor">担当講師</label>
+        <select id="newStudentInstructor">
+          <option value="">講師を選択</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="newStudentNote">メモ（任意）</label>
+        <input id="newStudentNote" placeholder="例：火曜午後が都合良い" />
+      </div>
+      <div class="fld">
+        <label for="newStudentEmail">メールアドレス（任意）</label>
+        <input id="newStudentEmail" type="email" placeholder="例：student@example.com" />
+      </div>
+      <div class="hint">後から編集・削除できます。</div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ghost" id="cancelAddStudent">キャンセル</button>
+      <button class="btn ok" id="saveAddStudent">保存</button>
+    </div>
+  </dialog>
+
+  <!-- Edit Student Dialog -->
+  <dialog id="editStudentDlg">
+    <div class="dlg-head">生徒を編集</div>
+    <div class="dlg-body">
+      <div class="fld">
+        <label for="editStudentName">生徒名</label>
+        <input id="editStudentName" />
+      </div>
+      <div class="fld">
+        <label for="editStudentInstructor">担当講師</label>
+        <select id="editStudentInstructor">
+          <option value="">講師を選択</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="editStudentNote">メモ（任意）</label>
+        <input id="editStudentNote" />
+      </div>
+      <div class="fld">
+        <label for="editStudentMemberNumber">会員番号</label>
+        <input id="editStudentMemberNumber" readonly style="background: rgba(255,255,255,.05);" />
+      </div>
+      <div class="fld">
+        <label for="editStudentEmail">メールアドレス（任意）</label>
+        <input id="editStudentEmail" type="email" />
+      </div>
+      <div class="fld">
+        <label for="editStudentPayment">入金状況</label>
+        <select id="editStudentPayment">
+          <option value="false">未入金</option>
+          <option value="true">入金済み</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label for="editStudentSurvey">アンケート送信状況</label>
+        <select id="editStudentSurvey">
+          <option value="false">未送信</option>
+          <option value="true">送信済み</option>
+        </select>
+      </div>
+      <div class="hint">変更はすぐ保存されます。</div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn danger" id="deleteStudent">削除</button>
+      <button class="btn ok" id="closeEditStudent">閉じる</button>
+    </div>
+  </dialog>
+
+  <script src="manager.js"></script>
+</body>
+</html> 
