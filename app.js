@@ -1,15 +1,12 @@
 (()=>{
   const $ = (s, root=document)=>root.querySelector(s);
   const $$ = (s, root=document)=>Array.from(root.querySelectorAll(s));
-  const LSKEY = 'ecg_jcg_checklist_v2';
 
   /*** State ***/
   let state = {
     instructors: [],          // [{id,name}]
-    students: [],             // [{id,name,instructorId,note}]
+    students: [],             // [{id,name,instructorId,note,email,memberNumber,registrationDate}]
     weekly: {},               // { 'YYYY-Www': { [id]: { dm:false, dmDate:'', lesson:false, lessonDate:'' } } }
-    monthly: {},              // { 'YYYY-MM':   { [id]: { survey:true } } }
-    payments: {},             // { [studentId]: { paid: false, lastPaid: '' } }
     ui: {
       mode: 'weekly',         // 'weekly' | 'monthly' | 'calendar'
       weekStart: startOfISOWeek(getCurrentDate()),
@@ -48,43 +45,6 @@
     return `${year}-W${String(week).padStart(2,'0')}`;
   }
 
-  /*** Storage ***/
-  function load(){
-    try{
-      const raw = localStorage.getItem(LSKEY);
-      if(raw){
-        const parsed = JSON.parse(raw);
-        // shallow schema guard
-        state = Object.assign(state, parsed);
-        // Date revive
-        const now = getCurrentDate();
-        
-        // 日付の復元を試行
-        try {
-          state.ui.weekStart = new Date(state.ui.weekStart);
-          state.ui.monthStart = new Date(state.ui.monthStart);
-          state.ui.calendarStart = new Date(state.ui.calendarStart);
-        } catch(e) {
-          console.warn('Date parsing failed, using current date');
-        }
-        
-        // 無効な日付の場合は現在の日付を使用
-        if(!state.ui.weekStart || isNaN(state.ui.weekStart.getTime()) || state.ui.weekStart.getFullYear() < 2020) {
-          state.ui.weekStart = startOfISOWeek(now);
-        }
-        if(!state.ui.monthStart || isNaN(state.ui.monthStart.getTime()) || state.ui.monthStart.getFullYear() < 2020) {
-          state.ui.monthStart = startOfMonth(now);
-        }
-        if(!state.ui.calendarStart || isNaN(state.ui.calendarStart.getTime()) || state.ui.calendarStart.getFullYear() < 2020) {
-          state.ui.calendarStart = startOfMonth(now);
-        }
-      }
-    }catch(e){ console.warn('load failed', e); }
-  }
-  function save(){
-    localStorage.setItem(LSKEY, JSON.stringify(state));
-  }
-
   /*** Theme management ***/
   function setTheme(theme) {
     state.ui.theme = theme;
@@ -107,30 +67,143 @@
     setTheme(theme);
   }
 
-  /*** Instructor management ***/
-  function addInstructor(name){
-    const id = 'i_'+Math.random().toString(36).slice(2,10);
-    state.instructors.push({id, name: name.trim()});
-    save(); render();
+  /*** API Functions ***/
+  async function loadInstructors() {
+    try {
+      const response = await api.get(API_ENDPOINTS.INSTRUCTORS);
+      state.instructors = response;
+      updateInstructorFilter();
+      updateInstructorList();
+    } catch (error) {
+      console.error('Failed to load instructors:', error);
+    }
   }
-  function removeInstructor(id){
-    // その講師を担当している生徒の講師をクリア
-    state.students.forEach(student => {
-      if(student.instructorId === id) {
-        student.instructorId = null;
+
+  async function loadStudents() {
+    try {
+      const response = await api.get(API_ENDPOINTS.STUDENTS);
+      state.students = response;
+    } catch (error) {
+      console.error('Failed to load students:', error);
+    }
+  }
+
+  async function loadWeeklyData(weekKey) {
+    try {
+      const response = await api.get(`${API_ENDPOINTS.WEEKLY}/${weekKey}`);
+      state.weekly[weekKey] = response;
+    } catch (error) {
+      console.error('Failed to load weekly data:', error);
+      state.weekly[weekKey] = {};
+    }
+  }
+
+  async function addInstructor(name){
+    try {
+      const response = await api.post(API_ENDPOINTS.INSTRUCTORS, { name: name.trim() });
+      state.instructors.push(response);
+      updateInstructorFilter();
+      updateInstructorList();
+    } catch (error) {
+      console.error('Failed to add instructor:', error);
+      alert('講師の追加に失敗しました');
+    }
+  }
+
+  async function removeInstructor(id){
+    try {
+      await api.delete(`${API_ENDPOINTS.INSTRUCTORS}/${id}`);
+      state.instructors = state.instructors.filter(x => x.id !== id);
+      updateInstructorFilter();
+      updateInstructorList();
+    } catch (error) {
+      console.error('Failed to remove instructor:', error);
+      alert('講師の削除に失敗しました');
+    }
+  }
+
+  async function addStudent(studentData){
+    try {
+      const response = await api.post(API_ENDPOINTS.STUDENTS, studentData);
+      state.students.push(response);
+      await render();
+    } catch (error) {
+      console.error('Failed to add student:', error);
+      alert('生徒の追加に失敗しました');
+    }
+  }
+
+  async function updateStudent(id, updates){
+    try {
+      const response = await api.put(`${API_ENDPOINTS.STUDENTS}/${id}`, updates);
+      const index = state.students.findIndex(s => s.id === id);
+      if (index !== -1) {
+        state.students[index] = response;
       }
-    });
-    state.instructors = state.instructors.filter(x => x.id !== id);
-    save(); render();
+      await render();
+    } catch (error) {
+      console.error('Failed to update student:', error);
+      alert('生徒の更新に失敗しました');
+    }
   }
+
+  async function removeStudent(id){
+    try {
+      await api.delete(`${API_ENDPOINTS.STUDENTS}/${id}`);
+      state.students = state.students.filter(s => s.id !== id);
+      await render();
+    } catch (error) {
+      console.error('Failed to remove student:', error);
+      alert('生徒の削除に失敗しました');
+    }
+  }
+
+  async function updateWeeklyCheck(weekKey, studentId, checkType, value, date = '') {
+    try {
+      const currentData = state.weekly[weekKey] || {};
+      const studentData = currentData[studentId] || { dm: false, dmDate: '', lesson: false, lessonDate: '' };
+      
+      if (checkType === 'dm') {
+        studentData.dm = value;
+        studentData.dmDate = date;
+      } else if (checkType === 'lesson') {
+        studentData.lesson = value;
+        studentData.lessonDate = date;
+      }
+
+      await api.post(API_ENDPOINTS.WEEKLY, {
+        weekKey,
+        studentId,
+        dm: studentData.dm,
+        dmDate: studentData.dmDate,
+        lesson: studentData.lesson,
+        lessonDate: studentData.lessonDate
+      });
+
+      if (!state.weekly[weekKey]) {
+        state.weekly[weekKey] = {};
+      }
+      state.weekly[weekKey][studentId] = studentData;
+    } catch (error) {
+      console.error('Failed to update weekly check:', error);
+      alert('チェックの更新に失敗しました');
+    }
+  }
+
   function getInstructorName(id){
     const instructor = state.instructors.find(x => x.id === id);
     return instructor ? instructor.name : '未設定';
   }
 
   /*** Rendering ***/
-  function render(){
+  async function render(){
     const mode = state.ui.mode;
+    
+    // Load weekly data if needed
+    if(mode === 'weekly') {
+      const weekKey = isoWeekStr(state.ui.weekStart);
+      await loadWeeklyData(weekKey);
+    }
     // header toggles
     $('#tabWeekly').classList.toggle('active', mode==='weekly');
     $('#tabWeekly').setAttribute('aria-selected', mode==='weekly');
@@ -172,7 +245,7 @@
       $('#empty').style.display='none';
       $('#calendar').style.display='block';
       $('#instructorFilterContainer').style.display='flex';
-      renderCalendar();
+      await renderCalendar();
       return;
     }else if(mode==='weekly'){
       $('#cards').style.display='grid';
@@ -240,8 +313,7 @@
           wk.dm,
           wk.dmDate,
           (val, date)=>{ 
-            setWeekly(s.id, key, 'dm', val); 
-            setWeekly(s.id, key, 'dmDate', date);
+            updateWeeklyCheck(key, s.id, 'dm', val, date); 
           }
         ));
         // レッスン実施
@@ -251,8 +323,7 @@
           wk.lesson,
           wk.lessonDate,
           (val, date)=>{ 
-            setWeekly(s.id, key, 'lesson', val); 
-            setWeekly(s.id, key, 'lessonDate', date);
+            updateWeeklyCheck(key, s.id, 'lesson', val, date); 
           }
         ));
         done += (wk.dm?1:0) + (wk.lesson?1:0);
@@ -337,22 +408,25 @@
     return wrap;
   }
 
-  function setWeekly(id, key, field, val){
-    if(!state.weekly[key]) state.weekly[key] = {};
-    if(!state.weekly[key][id]) state.weekly[key][id] = {dm:false, dmDate:'', lesson:false, lessonDate:''};
-    state.weekly[key][id][field] = val;
-  }
-  function setMonthly(id, key, field, val){
-    if(!state.monthly[key]) state.monthly[key] = {};
-    if(!state.monthly[key][id]) state.monthly[key][id] = {survey:false};
-    state.monthly[key][id][field] = val;
-  }
-
   /*** Calendar functions ***/
-  function renderCalendar(){
-    const calendar = $('#calendar');
+  async function renderCalendar(){
+    // Load all weekly data for the calendar month
     const start = state.ui.calendarStart;
     const end = addDays(addMonths(start, 1), -1);
+    
+    // Calculate week keys for the month
+    const weekKeys = [];
+    let currentWeek = startOfISOWeek(start);
+    while (currentWeek <= end) {
+      weekKeys.push(isoWeekStr(currentWeek));
+      currentWeek = addDays(currentWeek, 7);
+    }
+    
+    // Load weekly data for all weeks in the month
+    for (const weekKey of weekKeys) {
+      await loadWeeklyData(weekKey);
+    }
+    const calendar = $('#calendar');
     
     // Get all lesson dates from weekly data
     const lessonEvents = [];
@@ -476,27 +550,6 @@
     }
   }
 
-  function addStudent(data){
-    const id = 's_'+Math.random().toString(36).slice(2,10);
-    const memberNumber = generateMemberNumber();
-    state.students.push({id, memberNumber, ...data});
-    save(); render();
-  }
-  function updateStudent(id, patch){
-    const s = state.students.find(x=>x.id===id);
-    if(!s) return;
-    Object.assign(s, patch);
-    save(); render();
-  }
-  function removeStudent(id){
-    state.students = state.students.filter(x=>x.id!==id);
-    // also clean records
-    for(const k in state.weekly){ if(state.weekly[k][id]) delete state.weekly[k][id]; }
-    for(const k in state.monthly){ if(state.monthly[k][id]) delete state.monthly[k][id]; }
-    if(state.payments[id]) delete state.payments[id];
-    save(); render();
-  }
-
   /*** Modals ***/
   const dlg = $('#dlg');
   const editDlg = $('#editDlg');
@@ -517,7 +570,7 @@
     $('#editName').value = s.name || '';
     $('#editInstructor').value = s.instructorId || '';
     $('#editNote').value = s.note || '';
-    $('#editMemberNumber').value = s.memberNumber || '';
+    // $('#editMemberNumber').value = s.memberNumber || '';
     $('#editEmail').value = s.email || '';
     updateInstructorSelect();
     editDlg.showModal();
@@ -563,7 +616,6 @@
       btn.addEventListener('click', () => {
         if(confirm('この講師を削除しますか？')) {
           removeInstructor(btn.dataset.remove);
-          updateInstructorList();
         }
       });
     });
@@ -643,18 +695,18 @@
   function escapeHtml(str){ return (str??'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;','\'':'&#39;' }[s])); }
 
   /*** Events ***/
-  $('#tabWeekly').addEventListener('click', ()=>{ state.ui.mode='weekly'; save(); render(); });
+  $('#tabWeekly').addEventListener('click', async ()=>{ state.ui.mode='weekly'; await render(); });
   $('#tabMonthly').addEventListener('click', ()=>{ window.location.href = 'manager.html'; });
-  $('#tabCalendar').addEventListener('click', ()=>{ state.ui.mode='calendar'; save(); render(); });
+  $('#tabCalendar').addEventListener('click', async ()=>{ state.ui.mode='calendar'; await render(); });
 
-  $('#prevWeek').addEventListener('click', ()=>{ state.ui.weekStart = addDays(state.ui.weekStart, -7); save(); render(); });
-  $('#nextWeek').addEventListener('click', ()=>{ state.ui.weekStart = addDays(state.ui.weekStart, +7); save(); render(); });
+  $('#prevWeek').addEventListener('click', async ()=>{ state.ui.weekStart = addDays(state.ui.weekStart, -7); await render(); });
+  $('#nextWeek').addEventListener('click', async ()=>{ state.ui.weekStart = addDays(state.ui.weekStart, +7); await render(); });
 
-  $('#prevMonth').addEventListener('click', ()=>{ state.ui.monthStart = addMonths(state.ui.monthStart, -1); save(); render(); });
-  $('#nextMonth').addEventListener('click', ()=>{ state.ui.monthStart = addMonths(state.ui.monthStart, +1); save(); render(); });
+  $('#prevMonth').addEventListener('click', async ()=>{ state.ui.monthStart = addMonths(state.ui.monthStart, -1); await render(); });
+  $('#nextMonth').addEventListener('click', async ()=>{ state.ui.monthStart = addMonths(state.ui.monthStart, +1); await render(); });
 
-  $('#prevCalendar').addEventListener('click', ()=>{ state.ui.calendarStart = addMonths(state.ui.calendarStart, -1); save(); render(); });
-  $('#nextCalendar').addEventListener('click', ()=>{ state.ui.calendarStart = addMonths(state.ui.calendarStart, +1); save(); render(); });
+  $('#prevCalendar').addEventListener('click', async ()=>{ state.ui.calendarStart = addMonths(state.ui.calendarStart, -1); await render(); });
+  $('#nextCalendar').addEventListener('click', async ()=>{ state.ui.calendarStart = addMonths(state.ui.calendarStart, +1); await render(); });
 
   $('#btnAdd').addEventListener('click', openAdd);
   $('#btnInstructor').addEventListener('click', openInstructorManager);
@@ -684,9 +736,9 @@
   $('#editNote').addEventListener('input', e=>editingId && updateStudent(editingId, {note:e.target.value}));
   $('#editEmail').addEventListener('input', e=>editingId && updateStudent(editingId, {email:e.target.value}));
 
-  $('#instructorFilter').addEventListener('change', e=>{
+  $('#instructorFilter').addEventListener('change', async e=>{
     state.ui.selectedInstructor = e.target.value;
-    save(); render();
+    await render();
   });
 
   $('#addInstructor').addEventListener('click', ()=>{
@@ -694,7 +746,6 @@
     if(!name){ alert('講師名は必須です'); return; }
     addInstructor(name);
     $('#newInstructorName').value = '';
-    updateInstructorList();
   });
 
   $('#closeInstructorDlg').addEventListener('click', ()=>instructorDlg.close());
@@ -703,40 +754,39 @@
   $('#themeToggle').addEventListener('click', ()=>{
     const newTheme = state.ui.theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    save();
   });
 
-  // init
-  load();
-  initTheme();
-  
-  // 強制的に現在の日付で初期化
-  const now = getCurrentDate();
-  console.log('Current date:', now);
-  
-  // 日付が無効または1970年以前の場合は現在の日付を使用
-  if(!state.ui.weekStart || isNaN(state.ui.weekStart.getTime()) || state.ui.weekStart.getFullYear() < 2020) {
-    state.ui.weekStart = startOfISOWeek(now);
-    console.log('Reset weekStart to:', state.ui.weekStart);
+  // Initialize
+  async function initialize() {
+    initTheme();
+    
+    // 強制的に現在の日付で初期化
+    const now = getCurrentDate();
+    console.log('Current date:', now);
+    
+    // 日付が無効または1970年以前の場合は現在の日付を使用
+    if(!state.ui.weekStart || isNaN(state.ui.weekStart.getTime()) || state.ui.weekStart.getFullYear() < 2020) {
+      state.ui.weekStart = startOfISOWeek(now);
+      console.log('Reset weekStart to:', state.ui.weekStart);
+    }
+    if(!state.ui.monthStart || isNaN(state.ui.monthStart.getTime()) || state.ui.monthStart.getFullYear() < 2020) {
+      state.ui.monthStart = startOfMonth(now);
+      console.log('Reset monthStart to:', state.ui.monthStart);
+    }
+    if(!state.ui.calendarStart || isNaN(state.ui.calendarStart.getTime()) || state.ui.calendarStart.getFullYear() < 2020) {
+      state.ui.calendarStart = startOfMonth(now);
+      console.log('Reset calendarStart to:', state.ui.calendarStart);
+    }
+    
+    // Load data from backend
+    await loadInstructors();
+    await loadStudents();
+    await loadWeeklyData(isoWeekStr(state.ui.weekStart));
+    
+    await render();
+    updateInstructorFilter();
   }
-  if(!state.ui.monthStart || isNaN(state.ui.monthStart.getTime()) || state.ui.monthStart.getFullYear() < 2020) {
-    state.ui.monthStart = startOfMonth(now);
-    console.log('Reset monthStart to:', state.ui.monthStart);
-  }
-  if(!state.ui.calendarStart || isNaN(state.ui.calendarStart.getTime()) || state.ui.calendarStart.getFullYear() < 2020) {
-    state.ui.calendarStart = startOfMonth(now);
-    console.log('Reset calendarStart to:', state.ui.calendarStart);
-  }
-  
-  // 確実に保存
-  save();
-  render();
-  updateInstructorFilter();
-  
-  // 初期講師を追加（デモ用）
-  if(state.instructors.length === 0) {
-    addInstructor('Alex');
-    addInstructor('Sakura');
-    addInstructor('Tom');
-  }
+
+  // Start initialization
+  initialize();
 })(); 
