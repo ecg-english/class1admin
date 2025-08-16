@@ -31,6 +31,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Database status endpoint
+app.get('/api/db-status', (req, res) => {
+  const fs = require('fs');
+  const dbPath = '/tmp/class1admin.db';
+  const backupPath = '/tmp/class1admin_backup.db';
+  
+  const status = {
+    databaseExists: fs.existsSync(dbPath),
+    backupExists: fs.existsSync(backupPath),
+    databaseSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
+    backupSize: fs.existsSync(backupPath) ? fs.statSync(backupPath).size : 0,
+    timestamp: new Date().toISOString()
+  };
+  
+  res.json(status);
+});
+
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..')));
