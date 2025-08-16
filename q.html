@@ -881,17 +881,30 @@
             submittedAt: new Date().toISOString()
           };
           
-          console.log('Form data to be saved:', formData); // Debug log
+          console.log('Form data to be sent:', formData); // Debug log
           
-          // Save to localStorage
+          // Send to backend API
+          const response = await fetch(API_ENDPOINTS.SURVEYS, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('Survey submitted successfully:', result); // Debug log
+          
+          // Also save to localStorage for backup
           const existingSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
           existingSurveys.push(formData);
           localStorage.setItem('student_surveys', JSON.stringify(existingSurveys));
           
           console.log('Saved to localStorage. Total surveys:', existingSurveys.length); // Debug log
-          
-          // Update manager data
-          updateManagerSurveyStatus(memberNumber);
           
           // Show success screen
           $('#surveyContainer').style.display = 'none';
@@ -903,34 +916,7 @@
         }
       });
       
-      function updateManagerSurveyStatus(memberNumber) {
-        // Load manager data
-        const managerData = localStorage.getItem('ecg_jcg_checklist_v2');
-        if(managerData) {
-          const data = JSON.parse(managerData);
-          
-          // Find student by member number
-          const student = data.students.find(s => s.memberNumber === memberNumber);
-          if(student) {
-            // Get current month
-            const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            
-            // Initialize monthly data if not exists
-            if(!data.monthly) data.monthly = {};
-            if(!data.monthly[currentMonth]) data.monthly[currentMonth] = {};
-            if(!data.monthly[currentMonth][student.id]) {
-              data.monthly[currentMonth][student.id] = { paid: false, lastPaid: '', survey: false };
-            }
-            
-            // Update survey status for current month
-            data.monthly[currentMonth][student.id].survey = true;
-            
-            // Save back to localStorage
-            localStorage.setItem('ecg_jcg_checklist_v2', JSON.stringify(data));
-          }
-        }
-      }
+      // 古いローカルストレージ更新関数を削除（API連携に変更）
       
       // Theme management
       function setTheme(theme) {
