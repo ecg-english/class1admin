@@ -93,4 +93,50 @@ router.get('/manager/:monthKey', (req, res) => {
   });
 });
 
+// Reset survey responses for a specific month
+router.delete('/:monthKey/survey-reset', (req, res) => {
+  const { monthKey } = req.params;
+  
+  const sql = `
+    UPDATE monthly_checks 
+    SET survey = 0 
+    WHERE month_key = ?
+  `;
+  
+  db.getDb().run(sql, [monthKey], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    console.log(`Survey responses reset for month: ${monthKey}, affected rows: ${this.changes}`);
+    res.json({ 
+      message: 'Survey responses reset successfully',
+      monthKey: monthKey,
+      affectedRows: this.changes
+    });
+  });
+});
+
+// Reset all survey responses (all months)
+router.delete('/survey-reset-all', (req, res) => {
+  const sql = `
+    UPDATE monthly_checks 
+    SET survey = 0
+  `;
+  
+  db.getDb().run(sql, [], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    console.log(`All survey responses reset, affected rows: ${this.changes}`);
+    res.json({ 
+      message: 'All survey responses reset successfully',
+      affectedRows: this.changes
+    });
+  });
+});
+
 module.exports = router; 
