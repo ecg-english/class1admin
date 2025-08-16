@@ -29,6 +29,60 @@
     }
   }
 
+  async function loadMonthlyData(monthKey) {
+    try {
+      console.log('Loading monthly data for:', monthKey);
+      const response = await api.get(`${API_ENDPOINTS.MONTHLY}/${monthKey}`);
+      console.log('Monthly data response:', response);
+      
+      // Convert API response to state format
+      state.monthly[monthKey] = {};
+      Object.keys(response).forEach(studentId => {
+        state.monthly[monthKey][studentId] = {
+          paid: response[studentId].paid,
+          lastPaid: response[studentId].lastPaid || '',
+          survey: response[studentId].survey
+        };
+      });
+      console.log('Updated monthly state:', state.monthly[monthKey]);
+    } catch (error) {
+      console.error('Failed to load monthly data:', error);
+      state.monthly[monthKey] = {};
+    }
+  }
+
+  async function updatePayment(studentId, paid, survey) {
+    try {
+      const monthKey = fmtYearMonth(currentMonth);
+      const lastPaid = paid ? fmtDate(currentMonth) : '';
+      
+      console.log('Updating payment:', { studentId, paid, survey, monthKey, lastPaid });
+      
+      const response = await api.post(`${API_ENDPOINTS.MONTHLY}/${monthKey}/${studentId}`, {
+        paid,
+        lastPaid,
+        survey
+      });
+      
+      console.log('Payment update response:', response);
+      
+      // Update local state
+      if (!state.monthly[monthKey]) {
+        state.monthly[monthKey] = {};
+      }
+      state.monthly[monthKey][studentId] = {
+        paid,
+        lastPaid,
+        survey
+      };
+      
+      await renderDashboard();
+    } catch (error) {
+      console.error('Failed to update payment:', error);
+      alert('更新に失敗しました');
+    }
+  }
+
   async function addStudent(studentData){
     try {
       const response = await api.post(API_ENDPOINTS.STUDENTS, studentData);
@@ -133,6 +187,12 @@
     }
     console.log(`Getting data for student ${studentId} in month ${monthKey}:`, monthlyData[studentId]);
     return monthlyData[studentId];
+  }
+
+  // Load monthly data when month changes
+  async function loadMonthlyDataForCurrentMonth() {
+    const monthKey = fmtYearMonth(currentMonth);
+    await loadMonthlyData(monthKey);
   }
 
   /*** Storage ***/
@@ -424,17 +484,7 @@
     save(); renderDashboard();
   }
 
-  function updatePayment(id, paid, survey){
-    const monthKey = fmtYearMonth(currentMonth);
-    const monthlyData = getStudentMonthlyData(id, currentMonth);
-    monthlyData.paid = paid;
-    monthlyData.survey = survey;
-    if(paid) {
-      monthlyData.lastPaid = fmtDate(getCurrentDate());
-    }
-    console.log(`Updated payment for student ${id} in month ${monthKey}:`, monthlyData);
-    save(); renderDashboard();
-  }
+  // 古いupdatePayment関数を削除（API版を使用）
 
   function removeStudent(id){
     state.students = state.students.filter(x=>x.id!==id);
@@ -540,13 +590,15 @@
 
   $('#btnLogout').addEventListener('click', logout);
 
-  $('#prevMonth').addEventListener('click', ()=>{
+  $('#prevMonth').addEventListener('click', async ()=>{
     currentMonth = addMonths(currentMonth, -1);
+    await loadMonthlyDataForCurrentMonth();
     renderDashboard();
   });
 
-  $('#nextMonth').addEventListener('click', ()=>{
+  $('#nextMonth').addEventListener('click', async ()=>{
     currentMonth = addMonths(currentMonth, +1);
+    await loadMonthlyDataForCurrentMonth();
     renderDashboard();
   });
 
@@ -619,6 +671,7 @@
     console.log('Loading data from backend...');
     await loadInstructors();
     await loadStudents();
+    await loadMonthlyData(fmtYearMonth(currentMonth));
     
     console.log('Final state:', state);
     checkAuth();
