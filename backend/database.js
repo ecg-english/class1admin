@@ -1,6 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const DataPersistenceV2 = require('./data-persistence-v2');
+const DataPersistenceV3 = require('./data-persistence-v3');
 
 let db;
 let dataPersistence;
@@ -9,7 +9,7 @@ async function init() {
   console.log('=== データベース初期化開始 ===');
   
   // 強化されたデータ永続化システムの初期化
-  dataPersistence = new DataPersistenceV2();
+  dataPersistence = new DataPersistenceV3();
   
   if (process.env.NODE_ENV === 'production') {
     // 本番環境では完全なデータ整合性チェック
