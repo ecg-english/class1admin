@@ -9,12 +9,17 @@ function init() {
   const fs = require('fs');
   
   if (process.env.NODE_ENV === 'production') {
-    // 複数の永続化ディレクトリを試す
+    // より多くの永続化ディレクトリを試す
     const possiblePaths = [
       '/tmp/class1admin.db',
       '/opt/render/project/src/class1admin.db',
-      '/app/class1admin.db'
-    ];
+      '/app/class1admin.db',
+      '/var/tmp/class1admin.db',
+      '/home/render/class1admin.db',
+      process.env.HOME + '/class1admin.db'
+    ].filter(p => p); // undefinedを除外
+    
+    console.log('Searching for existing database in paths:', possiblePaths);
     
     // 既存のデータベースファイルを探す
     for (const path of possiblePaths) {
@@ -38,20 +43,36 @@ function init() {
   
   db = new sqlite3.Database(dbPath);
   
-  // バックアップからの復元を試行（本番環境のみ）
+  // より強固なバックアップ・復元システム（本番環境のみ）
   if (process.env.NODE_ENV === 'production') {
-    const backupPath = '/tmp/class1admin_backup.db';
-    if (fs.existsSync(backupPath) && !fs.existsSync(dbPath)) {
-      try {
-        fs.copyFileSync(backupPath, dbPath);
-        console.log('Database restored from backup');
-      } catch (error) {
-        console.error('Failed to restore from backup:', error);
+    const backupPaths = [
+      '/tmp/class1admin_backup.db',
+      '/opt/render/project/src/class1admin_backup.db',
+      '/app/class1admin_backup.db'
+    ];
+    
+    // バックアップからの復元を試行
+    let restored = false;
+    for (const backupPath of backupPaths) {
+      if (fs.existsSync(backupPath) && !fs.existsSync(dbPath)) {
+        try {
+          fs.copyFileSync(backupPath, dbPath);
+          console.log('Database restored from backup:', backupPath);
+          restored = true;
+          break;
+        } catch (error) {
+          console.error('Failed to restore from backup:', backupPath, error);
+        }
       }
+    }
+    
+    if (!restored) {
+      console.log('No backup found or restore failed, will create new database');
     }
   }
   
   // Create tables
+  console.log('Creating database tables...');
   db.serialize(() => {
     // Instructors table
     db.run(`
@@ -136,6 +157,8 @@ function init() {
     `);
     
     console.log('Database initialized successfully');
+    console.log('Database file path:', dbPath);
+    console.log('Database file size:', fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A', 'bytes');
     
     // 初期データの投入（データが空の場合のみ）
     // 本番環境でのみ実行し、開発環境ではスキップ
@@ -226,27 +249,38 @@ function close() {
   }
 }
 
-// データベースの定期バックアップ
+// データベースの定期バックアップ（複数バックアップ）
 function backupDatabase() {
   if (process.env.NODE_ENV === 'production') {
     const fs = require('fs');
     const currentDbPath = '/tmp/class1admin.db';
-    const backupPath = '/tmp/class1admin_backup.db';
+    const backupPaths = [
+      '/tmp/class1admin_backup.db',
+      '/opt/render/project/src/class1admin_backup.db',
+      '/app/class1admin_backup.db'
+    ];
     
     if (fs.existsSync(currentDbPath)) {
-      try {
-        fs.copyFileSync(currentDbPath, backupPath);
-        console.log('Database backup created at:', backupPath);
-      } catch (error) {
-        console.error('Failed to create database backup:', error);
+      let successCount = 0;
+      for (const backupPath of backupPaths) {
+        try {
+          fs.copyFileSync(currentDbPath, backupPath);
+          console.log('Database backup created at:', backupPath);
+          successCount++;
+        } catch (error) {
+          console.error('Failed to create database backup at:', backupPath, error);
+        }
       }
+      console.log(`Database backup completed: ${successCount}/${backupPaths.length} locations`);
+    } else {
+      console.warn('Current database file not found for backup');
     }
   }
 }
 
-// 定期的にバックアップを作成（5分ごと）
+// より頻繁なバックアップ（2分ごと）
 if (process.env.NODE_ENV === 'production') {
-  setInterval(backupDatabase, 5 * 60 * 1000);
+  setInterval(backupDatabase, 2 * 60 * 1000);
 }
 
 module.exports = {

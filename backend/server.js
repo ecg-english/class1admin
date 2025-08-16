@@ -35,13 +35,20 @@ app.get('/api/health', (req, res) => {
 app.get('/api/db-status', (req, res) => {
   const fs = require('fs');
   const dbPath = '/tmp/class1admin.db';
-  const backupPath = '/tmp/class1admin_backup.db';
+  const backupPaths = [
+    '/tmp/class1admin_backup.db',
+    '/opt/render/project/src/class1admin_backup.db',
+    '/app/class1admin_backup.db'
+  ];
   
   const status = {
     databaseExists: fs.existsSync(dbPath),
-    backupExists: fs.existsSync(backupPath),
     databaseSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
-    backupSize: fs.existsSync(backupPath) ? fs.statSync(backupPath).size : 0,
+    backups: backupPaths.map(path => ({
+      path: path,
+      exists: fs.existsSync(path),
+      size: fs.existsSync(path) ? fs.statSync(path).size : 0
+    })),
     timestamp: new Date().toISOString()
   };
   
