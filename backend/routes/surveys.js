@@ -177,4 +177,22 @@ function updateStudentSurveyStatus(memberNumber) {
   });
 }
 
+// Delete all surveys
+router.delete('/', (req, res) => {
+  const sql = 'DELETE FROM surveys';
+  
+  db.getDb().run(sql, [], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    console.log(`All surveys deleted, affected rows: ${this.changes}`);
+    res.json({ 
+      message: 'All surveys deleted successfully',
+      affectedRows: this.changes
+    });
+  });
+});
+
 module.exports = router; 

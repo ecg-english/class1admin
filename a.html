@@ -98,6 +98,20 @@
     }
     .month-selector {
       padding: 8px 12px;
+    }
+    .reset-button {
+      padding: 8px 16px;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    .reset-button:hover {
+      background: #b91c1c;
+    }
       background: rgba(255,255,255,.05);
       border: 1px solid rgba(255,255,255,.1);
       border-radius: 6px;
@@ -165,6 +179,7 @@
         <select class="month-selector" id="monthSelector">
           <option value="all">全期間</option>
         </select>
+        <button class="reset-button" id="resetButton" title="アンケート結果をリセット">🗑️ リセット</button>
       </div>
       
       <div id="resultsList">
@@ -186,10 +201,38 @@
       let allSurveys = [];
       let filteredSurveys = [];
       
-      function loadSurveyResults(){
-        allSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
-        updateMonthSelector();
-        filterSurveys();
+      async function loadSurveyResults(){
+        try {
+          console.log('Loading survey results from API...');
+          const response = await fetch(`${API_BASE_URL}/surveys`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          allSurveys = await response.json();
+          console.log('Loaded surveys from API:', allSurveys);
+          
+          // Convert API data format to match frontend expectations
+          allSurveys = allSurveys.map(survey => ({
+            memberNumber: survey.member_number,
+            studentName: survey.student_name,
+            satisfaction: survey.satisfaction,
+            npsScore: survey.nps_score,
+            instructorFeedback: survey.instructor_feedback,
+            lessonFeedback: survey.lesson_feedback,
+            learningGoals: survey.learning_goals,
+            otherFeedback: survey.other_feedback,
+            submittedAt: survey.submitted_at
+          }));
+          
+          updateMonthSelector();
+          filterSurveys();
+        } catch (error) {
+          console.error('Error loading survey results:', error);
+          // Fallback to localStorage if API fails
+          allSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
+          updateMonthSelector();
+          filterSurveys();
+        }
       }
       
       function updateMonthSelector() {
@@ -367,6 +410,24 @@
       // Event listeners
       $('#searchInput').addEventListener('input', filterSurveys);
       $('#monthSelector').addEventListener('change', filterSurveys);
+      $('#resetButton').addEventListener('click', async () => {
+        if (confirm('すべてのアンケート結果を削除しますか？この操作は取り消せません。')) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/surveys`, {
+              method: 'DELETE'
+            });
+            if (response.ok) {
+              alert('アンケート結果をリセットしました');
+              loadSurveyResults();
+            } else {
+              alert('リセットに失敗しました');
+            }
+          } catch (error) {
+            console.error('Error resetting surveys:', error);
+            alert('リセットに失敗しました');
+          }
+        }
+      });
       
       
       // Theme management
@@ -401,10 +462,16 @@
       initTheme();
       
       // Load results on page load
-      loadSurveyResults();
+      loadSurveyResults().catch(error => {
+        console.error('Failed to load survey results:', error);
+      });
       
       // Refresh results every 30 seconds
-      setInterval(loadSurveyResults, 30000);
+      setInterval(() => {
+        loadSurveyResults().catch(error => {
+          console.error('Failed to refresh survey results:', error);
+        });
+      }, 30000);
     })();
   </script>
 </body>
