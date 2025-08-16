@@ -138,24 +138,29 @@ function init() {
     console.log('Database initialized successfully');
     
     // 初期データの投入（データが空の場合のみ）
-    insertInitialData();
+    // 本番環境でのみ実行し、開発環境ではスキップ
+    if (process.env.NODE_ENV === 'production') {
+      insertInitialData();
+    }
   });
 }
 
 function insertInitialData() {
   console.log('Starting initial data insertion...');
   
-  // 講師データが空の場合、初期データを投入
-  db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
+  // データベースが完全に空の場合のみ初期データを投入
+  db.get('SELECT COUNT(*) as total FROM (SELECT 1 FROM instructors UNION SELECT 1 FROM students)', [], (err, row) => {
     if (err) {
-      console.error('Error checking instructors count:', err);
+      console.error('Error checking database state:', err);
       return;
     }
     
-    console.log('Current instructors count:', row.count);
+    console.log('Total records in database:', row.total);
     
-    if (row.count === 0) {
-      console.log('Inserting initial instructor data...');
+    if (row.total === 0) {
+      console.log('Database is completely empty, inserting initial data...');
+      
+      // 講師データを投入
       const instructors = [
         { id: 'i_taichi', name: 'Taichi' },
         { id: 'i_takaya', name: 'Takaya' },
@@ -172,22 +177,8 @@ function insertInitialData() {
           }
         });
       });
-    } else {
-      console.log('Instructors already exist, skipping insertion');
-    }
-  });
-  
-  // 生徒データが空の場合、初期データを投入
-  db.get('SELECT COUNT(*) as count FROM students', [], (err, row) => {
-    if (err) {
-      console.error('Error checking students count:', err);
-      return;
-    }
-    
-    console.log('Current students count:', row.count);
-    
-    if (row.count === 0) {
-      console.log('Inserting initial student data...');
+      
+      // 生徒データを投入
       const students = [
         { 
           id: 's_mohamed', 
@@ -218,9 +209,11 @@ function insertInitialData() {
         });
       });
     } else {
-      console.log('Students already exist, skipping insertion');
+      console.log('Database has existing data, skipping initial data insertion');
     }
   });
+  
+
 }
 
 function getDb() {
