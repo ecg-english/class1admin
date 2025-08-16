@@ -47,11 +47,18 @@ router.post('/', (req, res) => {
           const number = parseInt(current.slice(1));
           
           if (number < 99) {
+            // 同じ文字で次の番号
             nextNumber = letter + (number + 1);
-          } else if (letter < 'z') {
-            nextNumber = String.fromCharCode(letter.charCodeAt(0) + 1) + '11';
           } else {
-            nextNumber = 'k11';
+            // 99に達したら次の文字に
+            const letters = ['k', 'm', 'l', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+            const currentIndex = letters.indexOf(letter);
+            if (currentIndex !== -1 && currentIndex < letters.length - 1) {
+              nextNumber = letters[currentIndex + 1] + '11';
+            } else {
+              // 最後の文字に達したら最初に戻る
+              nextNumber = 'k11';
+            }
           }
         }
         resolve(nextNumber);
@@ -66,7 +73,39 @@ router.post('/', (req, res) => {
         res.status(500).json({ error: err.message });
         return;
       }
-      res.json({ id, name, instructorId, memberNumber, email, note, registrationDate });
+      
+      // Get instructor name for response
+      const getInstructorName = () => {
+        return new Promise((resolve, reject) => {
+          if (!instructorId) {
+            resolve(null);
+            return;
+          }
+          const instructorSql = 'SELECT name FROM instructors WHERE id = ?';
+          db.getDb().get(instructorSql, [instructorId], (err, row) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(row ? row.name : null);
+          });
+        });
+      };
+      
+      getInstructorName().then(instructorName => {
+        res.json({ 
+          id, 
+          name, 
+          instructorId, 
+          memberNumber, 
+          email, 
+          note, 
+          registrationDate,
+          instructor_name: instructorName
+        });
+      }).catch(err => {
+        res.status(500).json({ error: err.message });
+      });
     });
   }).catch(err => {
     res.status(500).json({ error: err.message });
@@ -106,15 +145,38 @@ router.put('/:id', (req, res) => {
         return;
       }
       
-      // Return updated student data
-      res.json({ 
-        id, 
-        name: updateName, 
-        instructorId: updateInstructorId, 
-        memberNumber: row.member_number, 
-        email: updateEmail, 
-        note: updateNote, 
-        registrationDate: updateRegistrationDate 
+      // Get instructor name for response
+      const getInstructorName = () => {
+        return new Promise((resolve, reject) => {
+          if (!updateInstructorId) {
+            resolve(null);
+            return;
+          }
+          const instructorSql = 'SELECT name FROM instructors WHERE id = ?';
+          db.getDb().get(instructorSql, [updateInstructorId], (err, row) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(row ? row.name : null);
+          });
+        });
+      };
+      
+      getInstructorName().then(instructorName => {
+        // Return updated student data
+        res.json({ 
+          id, 
+          name: updateName, 
+          instructorId: updateInstructorId, 
+          memberNumber: row.member_number, 
+          email: updateEmail, 
+          note: updateNote, 
+          registrationDate: updateRegistrationDate,
+          instructor_name: instructorName
+        });
+      }).catch(err => {
+        res.status(500).json({ error: err.message });
       });
     });
   });
@@ -168,10 +230,18 @@ router.get('/next-member-number', (req, res) => {
       const number = parseInt(current.slice(1));
       
       if (number < 99) {
+        // 同じ文字で次の番号
         nextNumber = letter + (number + 1);
       } else {
-        const nextLetter = String.fromCharCode(letter.charCodeAt(0) + 1);
-        nextNumber = nextLetter + '11';
+        // 99に達したら次の文字に
+        const letters = ['k', 'm', 'l', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+        const currentIndex = letters.indexOf(letter);
+        if (currentIndex !== -1 && currentIndex < letters.length - 1) {
+          nextNumber = letters[currentIndex + 1] + '11';
+        } else {
+          // 最後の文字に達したら最初に戻る
+          nextNumber = 'k11';
+        }
       }
     }
     
