@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./database');
+const EmergencyDataRecovery = require('./emergency-data-recovery');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -92,6 +93,55 @@ app.post('/api/db-restore', (req, res) => {
   } else {
     res.status(500).json({ 
       error: 'No backup found or restore failed' 
+    });
+  }
+});
+
+// Emergency backup creation endpoint
+app.post('/api/emergency-backup', async (req, res) => {
+  try {
+    const recovery = new EmergencyDataRecovery();
+    const backupData = await recovery.createEmergencyBackup();
+    res.json({
+      success: true,
+      message: 'Emergency backup created successfully',
+      dataCount: {
+        instructors: backupData.instructors.length,
+        students: backupData.students.length,
+        weeklyChecks: backupData.weekly_checks.length,
+        monthlyChecks: backupData.monthly_checks.length,
+        surveys: backupData.surveys.length
+      },
+      timestamp: backupData.timestamp
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Emergency backup failed',
+      message: error.message
+    });
+  }
+});
+
+// Emergency restore endpoint
+app.post('/api/emergency-restore', async (req, res) => {
+  try {
+    const recovery = new EmergencyDataRecovery();
+    const restored = await recovery.restoreFromEmergencyBackup();
+    
+    if (restored) {
+      res.json({
+        success: true,
+        message: 'Emergency restore completed successfully'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Emergency restore failed'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      error: 'Emergency restore failed',
+      message: error.message
     });
   }
 });

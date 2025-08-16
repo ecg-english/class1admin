@@ -46,8 +46,15 @@ class DataPersistenceV2 {
       // 3. 最終確認とフォールバック
       const finalCheck = await this.checkDatabaseContent();
       if (!finalCheck) {
-        console.log('復元に失敗しました。初期データを作成します...');
+        console.log('復元に失敗しました。初期データベースを作成します...');
+        // 既存のデータベースを完全削除してから作成
+        if (fs.existsSync(this.dbPath)) {
+          fs.unlinkSync(this.dbPath);
+          console.log('既存の空データベースを削除しました');
+        }
         await this.createInitialDatabase();
+      } else {
+        console.log('データベースにデータが存在します。初期化をスキップします。');
       }
       
     } catch (error) {
@@ -230,44 +237,65 @@ class DataPersistenceV2 {
           )
         `);
         
-        // 初期データ投入
+        // 初期データ投入（テーブルが空の場合のみ）
         console.log('初期データを投入します...');
         
-        // 講師データ
-        const instructors = [
-          { id: 'i_taichi', name: 'Taichi' },
-          { id: 'i_takaya', name: 'Takaya' },
-          { id: 'i_haruka', name: 'Haruka' }
-        ];
-        
-        instructors.forEach(instructor => {
-          db.run('INSERT OR REPLACE INTO instructors (id, name) VALUES (?, ?)', 
-            [instructor.id, instructor.name]);
-        });
-        
-        // 生徒データ
-        const students = [
-          { 
-            id: 's_mohamed', 
-            name: 'Mohamed Taqi', 
-            instructor_id: 'i_taichi',
-            member_number: 'k11',
-            email: 'mt.taqi@gmail.com',
-            note: ''
-          },
-          { 
-            id: 's_test1', 
-            name: 'test1', 
-            instructor_id: 'i_takaya',
-            member_number: 'k12',
-            email: 'test1@gmail.com',
-            note: '文化を学びたい'
+        // 再度確認：本当にテーブルが空か？
+        db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
+          if (!err && row.count === 0) {
+            console.log('講師テーブルが空です。初期データを投入します。');
+            
+            // 講師データ
+            const instructors = [
+              { id: 'i_taichi', name: 'Taichi' },
+              { id: 'i_takaya', name: 'Takaya' },
+              { id: 'i_haruka', name: 'Haruka' }
+            ];
+            
+            instructors.forEach(instructor => {
+              db.run('INSERT INTO instructors (id, name) VALUES (?, ?)', 
+                [instructor.id, instructor.name], (err) => {
+                if (err) {
+                  console.error('講師データ投入エラー:', err);
+                } else {
+                  console.log('講師データ投入成功:', instructor.name);
+                }
+              });
+            });
+            
+            // 生徒データ
+            const students = [
+              { 
+                id: 's_mohamed', 
+                name: 'Mohamed Taqi', 
+                instructor_id: 'i_taichi',
+                member_number: 'k11',
+                email: 'mt.taqi@gmail.com',
+                note: ''
+              },
+              { 
+                id: 's_test1', 
+                name: 'test1', 
+                instructor_id: 'i_takaya',
+                member_number: 'k12',
+                email: 'test1@gmail.com',
+                note: '文化を学びたい'
+              }
+            ];
+            
+            students.forEach(student => {
+              db.run('INSERT INTO students (id, name, instructor_id, member_number, email, note) VALUES (?, ?, ?, ?, ?, ?)', 
+                [student.id, student.name, student.instructor_id, student.member_number, student.email, student.note], (err) => {
+                if (err) {
+                  console.error('生徒データ投入エラー:', err);
+                } else {
+                  console.log('生徒データ投入成功:', student.name);
+                }
+              });
+            });
+          } else {
+            console.log('講師テーブルにデータが存在します。初期データ投入をスキップします。');
           }
-        ];
-        
-        students.forEach(student => {
-          db.run('INSERT OR REPLACE INTO students (id, name, instructor_id, member_number, email, note) VALUES (?, ?, ?, ?, ?, ?)', 
-            [student.id, student.name, student.instructor_id, student.member_number, student.email, student.note]);
         });
         
         db.close((err) => {
