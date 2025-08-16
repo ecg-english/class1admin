@@ -35,50 +35,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Database status endpoint
-app.get('/api/db-status', (req, res) => {
-  const fs = require('fs');
-  const sqlite3 = require('sqlite3').verbose();
-  const dbPath = '/tmp/class1admin.db';
-  const backupPaths = [
-    '/tmp/class1admin_backup.db',
-    '/opt/render/project/src/class1admin_backup.db',
-    '/app/class1admin_backup.db'
-  ];
-  
-  const status = {
-    databaseExists: fs.existsSync(dbPath),
-    databaseSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0,
-    backups: backupPaths.map(path => ({
-      path: path,
-      exists: fs.existsSync(path),
-      size: fs.existsSync(path) ? fs.statSync(path).size : 0
-    })),
-    timestamp: new Date().toISOString()
-  };
-  
-  // データベースの内容もチェック
-  if (fs.existsSync(dbPath)) {
-    try {
-      const tempDb = new sqlite3.Database(dbPath);
-      tempDb.get('SELECT COUNT(*) as studentCount FROM students', [], (err, studentRow) => {
-        if (!err) {
-          status.studentCount = studentRow.studentCount;
-        }
-        tempDb.get('SELECT COUNT(*) as instructorCount FROM instructors', [], (err, instructorRow) => {
-          if (!err) {
-            status.instructorCount = instructorRow.instructorCount;
-          }
-          tempDb.close();
-          res.json(status);
-        });
-      });
-    } catch (error) {
-      status.error = error.message;
-      res.json(status);
-    }
-  } else {
+// Database status endpoint (enhanced)
+app.get('/api/db-status', async (req, res) => {
+  try {
+    // 新しいデータ永続化システムのステータスを使用
+    const status = await db.getStatus();
     res.json(status);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

@@ -1,17 +1,22 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const DataPersistence = require('./data-persistence');
+const DataPersistenceV2 = require('./data-persistence-v2');
 
 let db;
 let dataPersistence;
 
 async function init() {
-  // データ永続化システムの初期化
-  dataPersistence = new DataPersistence();
+  console.log('=== データベース初期化開始 ===');
+  
+  // 強化されたデータ永続化システムの初期化
+  dataPersistence = new DataPersistenceV2();
   
   if (process.env.NODE_ENV === 'production') {
-    // 本番環境ではデータ永続化を確保
-    await dataPersistence.ensureDatabase();
+    // 本番環境では完全なデータ整合性チェック
+    await dataPersistence.ensureDataIntegrity();
+    
+    // 定期的なバックアップを開始
+    dataPersistence.startPeriodicBackup();
   }
   
   // データベースパスの設定
@@ -22,194 +27,16 @@ async function init() {
     dbPath = path.join(__dirname, 'class1admin.db');
   }
   
-  console.log('Using database path:', dbPath);
+  console.log('データベースパス:', dbPath);
   db = new sqlite3.Database(dbPath);
   
-  // 定期的なバックアップを開始
-  if (process.env.NODE_ENV === 'production') {
-    dataPersistence.startPeriodicBackup();
-  }
+  console.log('=== データベース初期化完了 ===');
   
-  // Create tables
-  console.log('Creating database tables...');
-  db.serialize(() => {
-    // Instructors table
-    db.run(`
-      CREATE TABLE IF NOT EXISTS instructors (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    // Students table
-    db.run(`
-      CREATE TABLE IF NOT EXISTS students (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        instructor_id TEXT,
-        member_number TEXT UNIQUE,
-        email TEXT,
-        note TEXT,
-        registration_date TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (instructor_id) REFERENCES instructors (id)
-      )
-    `);
-    
-    // Weekly checks table
-    db.run(`
-      CREATE TABLE IF NOT EXISTS weekly_checks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        week_key TEXT NOT NULL,
-        student_id TEXT NOT NULL,
-        dm BOOLEAN DEFAULT 0,
-        dm_date TEXT,
-        lesson BOOLEAN DEFAULT 0,
-        lesson_date TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students (id),
-        UNIQUE(week_key, student_id)
-      )
-    `);
-    
-    // Monthly checks table
-    db.run(`
-      CREATE TABLE IF NOT EXISTS monthly_checks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        month_key TEXT NOT NULL,
-        student_id TEXT NOT NULL,
-        paid BOOLEAN DEFAULT 0,
-        last_paid TEXT,
-        survey BOOLEAN DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students (id),
-        UNIQUE(month_key, student_id)
-      )
-    `);
-    
-    // Surveys table
-    db.run(`
-      CREATE TABLE IF NOT EXISTS surveys (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        member_number TEXT NOT NULL,
-        student_name TEXT,
-        satisfaction INTEGER,
-        nps_score INTEGER,
-        instructor_feedback TEXT,
-        lesson_feedback TEXT,
-        learning_goals TEXT,
-        other_feedback TEXT,
-        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    // Users table for authentication
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'instructor',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    console.log('Database initialized successfully');
-    console.log('Database file path:', dbPath);
-    console.log('Database file size:', fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A', 'bytes');
-    
-    // 初期データの投入（バックアップが存在しない場合のみ）
-    // 本番環境でのみ実行し、開発環境ではスキップ
-    if (process.env.NODE_ENV === 'production') {
-      // バックアップの存在をチェック
-      const backupPaths = [
-        '/tmp/class1admin_backup.db',
-        '/opt/render/project/src/class1admin_backup.db',
-        '/app/class1admin_backup.db'
-      ];
-      
-      const hasBackup = backupPaths.some(path => fs.existsSync(path));
-      console.log('Backup exists:', hasBackup);
-      
-      if (!hasBackup) {
-        console.log('No backup found, will insert initial data');
-        insertInitialData();
-      } else {
-        console.log('Backup found, skipping initial data insertion');
-      }
-    }
-  });
+  // 新しいデータ永続化システムが初期化を担当
+  console.log('新しいデータ永続化システムがすべて処理しました');
 }
 
-function insertInitialData() {
-  console.log('Starting initial data insertion...');
-  
-  // 簡単なチェックのみ
-  db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
-    if (err) {
-      console.error('Error checking instructors:', err);
-      return;
-    }
-    
-    console.log('Current instructors count:', row.count);
-    
-    if (row.count === 0) {
-      console.log('No instructors found, inserting initial data...');
-      
-      // 講師データを投入
-      const instructors = [
-        { id: 'i_taichi', name: 'Taichi' },
-        { id: 'i_takaya', name: 'Takaya' },
-        { id: 'i_haruka', name: 'Haruka' }
-      ];
-      
-      instructors.forEach(instructor => {
-        db.run('INSERT INTO instructors (id, name) VALUES (?, ?)', 
-          [instructor.id, instructor.name], (err) => {
-          if (err) {
-            console.error('Error inserting instructor:', err);
-          } else {
-            console.log(`Inserted instructor: ${instructor.name}`);
-          }
-        });
-      });
-      
-      // 生徒データを投入
-      const students = [
-        { 
-          id: 's_mohamed', 
-          name: 'Mohamed Taqi', 
-          instructor_id: 'i_taichi',
-          member_number: 'k11',
-          email: 'mt.taqi@gmail.com',
-          note: ''
-        },
-        { 
-          id: 's_test1', 
-          name: 'test1', 
-          instructor_id: 'i_takaya',
-          member_number: 'k12',
-          email: 'test1@gmail.com',
-          note: '文化を学びたい'
-        }
-      ];
-      
-      students.forEach(student => {
-        db.run('INSERT INTO students (id, name, instructor_id, member_number, email, note) VALUES (?, ?, ?, ?, ?, ?)', 
-          [student.id, student.name, student.instructor_id, student.member_number, student.email, student.note], (err) => {
-          if (err) {
-            console.error('Error inserting student:', err);
-          } else {
-            console.log(`Inserted student: ${student.name}`);
-          }
-        });
-      });
-    } else {
-      console.log('Instructors already exist, skipping insertion');
-    }
-  });
-}
+// insertInitialData関数は新しいシステムに統合されました
 
 function getDb() {
   return db;
@@ -224,7 +51,19 @@ function close() {
 // 新しいデータ永続化システムを使用
 function backupDatabase() {
   if (dataPersistence) {
-    dataPersistence.createBackup();
+    dataPersistence.createTimestampedBackup();
+  }
+}
+
+// ステータス取得（新システム対応）
+async function getStatus() {
+  if (dataPersistence) {
+    return dataPersistence.getStatus();
+  } else {
+    return {
+      error: 'Data persistence system not initialized',
+      timestamp: new Date().toISOString()
+    };
   }
 }
 
@@ -232,5 +71,6 @@ module.exports = {
   init,
   getDb,
   close,
-  backupDatabase
+  backupDatabase,
+  getStatus
 }; 
