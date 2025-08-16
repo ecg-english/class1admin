@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'https://class1admin-backend.onrender.com/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 // API endpoints
 const API_ENDPOINTS = {

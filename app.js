@@ -70,7 +70,9 @@
   /*** API Functions ***/
   async function loadInstructors() {
     try {
+      console.log('Loading instructors from:', API_ENDPOINTS.INSTRUCTORS);
       const response = await api.get(API_ENDPOINTS.INSTRUCTORS);
+      console.log('Instructors response:', response);
       state.instructors = response;
       updateInstructorFilter();
       updateInstructorList();
@@ -81,7 +83,9 @@
 
   async function loadStudents() {
     try {
+      console.log('Loading students from:', API_ENDPOINTS.STUDENTS);
       const response = await api.get(API_ENDPOINTS.STUDENTS);
+      console.log('Students response:', response);
       state.students = response;
       console.log('Loaded students:', state.students);
     } catch (error) {
@@ -767,6 +771,10 @@
 
   // Initialize
   async function initialize() {
+    console.log('Initializing application...');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('API_ENDPOINTS:', API_ENDPOINTS);
+    
     initTheme();
     
     // 強制的に現在の日付で初期化
@@ -788,10 +796,12 @@
     }
     
     // Load data from backend
+    console.log('Loading data from backend...');
     await loadInstructors();
     await loadStudents();
     await loadWeeklyData(isoWeekStr(state.ui.weekStart));
     
+    console.log('Final state:', state);
     await render();
     updateInstructorFilter();
   }

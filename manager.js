@@ -4,6 +4,82 @@
   const LSKEY = 'ecg_jcg_checklist_v2';
   const MANAGER_PASSWORD = 'ecgjcg1212';
 
+  // API Functions
+  async function loadInstructors() {
+    try {
+      console.log('Loading instructors from:', API_ENDPOINTS.INSTRUCTORS);
+      const response = await api.get(API_ENDPOINTS.INSTRUCTORS);
+      console.log('Instructors response:', response);
+      state.instructors = response;
+      updateInstructorList();
+    } catch (error) {
+      console.error('Failed to load instructors:', error);
+    }
+  }
+
+  async function loadStudents() {
+    try {
+      console.log('Loading students from:', API_ENDPOINTS.STUDENTS);
+      const response = await api.get(API_ENDPOINTS.STUDENTS);
+      console.log('Students response:', response);
+      state.students = response;
+      console.log('Loaded students:', state.students);
+    } catch (error) {
+      console.error('Failed to load students:', error);
+    }
+  }
+
+  async function addStudent(studentData){
+    try {
+      const response = await api.post(API_ENDPOINTS.STUDENTS, studentData);
+      state.students.push(response);
+      await renderDashboard();
+    } catch (error) {
+      console.error('Failed to add student:', error);
+      alert('生徒の追加に失敗しました');
+    }
+  }
+
+  async function updateStudent(id, updates){
+    try {
+      console.log('Updating student:', id, updates);
+      const response = await api.put(`${API_ENDPOINTS.STUDENTS}/${id}`, updates);
+      console.log('Update response:', response);
+      const index = state.students.findIndex(s => s.id === id);
+      if (index !== -1) {
+        state.students[index] = response;
+      }
+      await renderDashboard();
+    } catch (error) {
+      console.error('Failed to update student:', error);
+      alert('生徒の更新に失敗しました');
+    }
+  }
+
+  async function removeStudent(id){
+    try {
+      await api.delete(`${API_ENDPOINTS.STUDENTS}/${id}`);
+      state.students = state.students.filter(s => s.id !== id);
+      await renderDashboard();
+    } catch (error) {
+      console.error('Failed to remove student:', error);
+      alert('生徒の削除に失敗しました');
+    }
+  }
+
+  function updateInstructorList() {
+    const select = $('#newStudentInstructor');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">講師を選択</option>';
+    state.instructors.forEach(instructor => {
+      const option = document.createElement('option');
+      option.value = instructor.id;
+      option.textContent = instructor.name;
+      select.appendChild(option);
+    });
+  }
+
   /*** State ***/
   let state = {
     instructors: [],          // [{id,name}]
@@ -527,8 +603,23 @@
       $('#editStudentPayment').value === 'true', e.target.value === 'true')
   );
 
+  // Initialize
+  async function initialize() {
+    console.log('Initializing manager application...');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('API_ENDPOINTS:', API_ENDPOINTS);
+    
+    initTheme();
+    
+    // Load data from backend
+    console.log('Loading data from backend...');
+    await loadInstructors();
+    await loadStudents();
+    
+    console.log('Final state:', state);
+    checkAuth();
+  }
+
   // init
-  load();
-  initTheme();
-  checkAuth();
+  initialize();
 })(); 
