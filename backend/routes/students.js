@@ -91,9 +91,16 @@ router.put('/:id', (req, res) => {
       return;
     }
     
+    // Use existing values if not provided in the update
+    const updateName = name !== undefined ? name : row.name;
+    const updateInstructorId = instructorId !== undefined ? instructorId : row.instructor_id;
+    const updateEmail = email !== undefined ? email : row.email;
+    const updateNote = note !== undefined ? note : row.note;
+    const updateRegistrationDate = registrationDate !== undefined ? registrationDate : row.registration_date;
+    
     // Update student (preserve existing member_number)
     const sql = 'UPDATE students SET name = ?, instructor_id = ?, email = ?, note = ?, registration_date = ? WHERE id = ?';
-    db.getDb().run(sql, [name, instructorId, email, note, registrationDate, id], function(err) {
+    db.getDb().run(sql, [updateName, updateInstructorId, updateEmail, updateNote, updateRegistrationDate, id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
@@ -102,12 +109,12 @@ router.put('/:id', (req, res) => {
       // Return updated student data
       res.json({ 
         id, 
-        name, 
-        instructorId, 
+        name: updateName, 
+        instructorId: updateInstructorId, 
         memberNumber: row.member_number, 
-        email, 
-        note, 
-        registrationDate 
+        email: updateEmail, 
+        note: updateNote, 
+        registrationDate: updateRegistrationDate 
       });
     });
   });
