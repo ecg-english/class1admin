@@ -92,7 +92,7 @@ router.put('/:id', (req, res) => {
     }
     
     // Use existing values if not provided in the update
-    const updateName = name !== undefined ? name : row.name;
+    const updateName = name !== undefined && name !== null ? name : row.name;
     const updateInstructorId = instructorId !== undefined ? instructorId : row.instructor_id;
     const updateEmail = email !== undefined ? email : row.email;
     const updateNote = note !== undefined ? note : row.note;
