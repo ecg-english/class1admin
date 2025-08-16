@@ -899,13 +899,6 @@
           const result = await response.json();
           console.log('Survey submitted successfully:', result); // Debug log
           
-          // Also save to localStorage for backup
-          const existingSurveys = JSON.parse(localStorage.getItem('student_surveys') || '[]');
-          existingSurveys.push(formData);
-          localStorage.setItem('student_surveys', JSON.stringify(existingSurveys));
-          
-          console.log('Saved to localStorage. Total surveys:', existingSurveys.length); // Debug log
-          
           // Show success screen
           $('#surveyContainer').style.display = 'none';
           $('#successScreen').style.display = 'block';

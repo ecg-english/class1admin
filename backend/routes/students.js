@@ -96,11 +96,15 @@ router.post('/', (req, res) => {
         res.json({ 
           id, 
           name, 
-          instructorId, 
-          memberNumber, 
+          instructor_id: instructorId,
+          instructorId, // for backward compatibility
+          member_number: memberNumber,
+          memberNumber, // for backward compatibility
           email, 
           note, 
-          registrationDate,
+          registration_date: registrationDate,
+          registrationDate, // for backward compatibility
+          created_at: new Date().toISOString(),
           instructor_name: instructorName
         });
       }).catch(err => {
@@ -164,15 +168,19 @@ router.put('/:id', (req, res) => {
       };
       
       getInstructorName().then(instructorName => {
-        // Return updated student data
+        // Return updated student data with consistent format
         res.json({ 
           id, 
           name: updateName, 
-          instructorId: updateInstructorId, 
-          memberNumber: row.member_number, 
+          instructor_id: updateInstructorId,
+          instructorId: updateInstructorId, // for backward compatibility
+          member_number: row.member_number,
+          memberNumber: row.member_number, // for backward compatibility
           email: updateEmail, 
           note: updateNote, 
-          registrationDate: updateRegistrationDate,
+          registration_date: updateRegistrationDate,
+          registrationDate: updateRegistrationDate, // for backward compatibility
+          created_at: row.created_at,
           instructor_name: instructorName
         });
       }).catch(err => {

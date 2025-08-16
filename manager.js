@@ -1,7 +1,6 @@
 (()=>{
   const $ = (s, root=document)=>root.querySelector(s);
   const $$ = (s, root=document)=>Array.from(root.querySelectorAll(s));
-  const LSKEY = 'ecg_jcg_checklist_v2';
   const MANAGER_PASSWORD = 'ecgjcg1212';
 
   // API Functions
@@ -195,38 +194,19 @@
     await loadMonthlyData(monthKey);
   }
 
-  /*** Storage ***/
-  function load(){
-    try{
-      const raw = localStorage.getItem(LSKEY);
-      if(raw){
-        const parsed = JSON.parse(raw);
-        state = Object.assign(state, parsed);
-        
-        // Date revive
-        const now = getCurrentDate();
-        try {
-          state.ui.weekStart = new Date(state.ui.weekStart);
-          state.ui.monthStart = new Date(state.ui.monthStart);
-          state.ui.calendarStart = new Date(state.ui.calendarStart);
-        } catch(e) {
-          console.warn('Date parsing failed, using current date');
-        }
-        
-        if(!state.ui.weekStart || isNaN(state.ui.weekStart.getTime()) || state.ui.weekStart.getFullYear() < 2020) {
-          state.ui.weekStart = startOfISOWeek(now);
-        }
-        if(!state.ui.monthStart || isNaN(state.ui.monthStart.getTime()) || state.ui.monthStart.getFullYear() < 2020) {
-          state.ui.monthStart = startOfMonth(now);
-        }
-        if(!state.ui.calendarStart || isNaN(state.ui.calendarStart.getTime()) || state.ui.calendarStart.getFullYear() < 2020) {
-          state.ui.calendarStart = startOfMonth(now);
-        }
-      }
-    }catch(e){ console.warn('load failed', e); }
-  }
-  function save(){
-    localStorage.setItem(LSKEY, JSON.stringify(state));
+  /*** Date Utilities ***/
+  function initializeDates() {
+    const now = getCurrentDate();
+    
+    if(!state.ui.weekStart || isNaN(state.ui.weekStart.getTime()) || state.ui.weekStart.getFullYear() < 2020) {
+      state.ui.weekStart = startOfISOWeek(now);
+    }
+    if(!state.ui.monthStart || isNaN(state.ui.monthStart.getTime()) || state.ui.monthStart.getFullYear() < 2020) {
+      state.ui.monthStart = startOfMonth(now);
+    }
+    if(!state.ui.calendarStart || isNaN(state.ui.calendarStart.getTime()) || state.ui.calendarStart.getFullYear() < 2020) {
+      state.ui.calendarStart = startOfMonth(now);
+    }
   }
 
   /*** Theme management ***/
@@ -469,29 +449,7 @@
     }
   }
 
-  function addStudent(data){
-    const id = 's_'+Math.random().toString(36).slice(2,10);
-    const memberNumber = generateMemberNumber();
-    state.students.push({id, memberNumber, ...data});
-    // Initialize monthly data for current month
-    getStudentMonthlyData(id, currentMonth);
-    save(); renderDashboard();
-  }
-
-  function updateStudent(id, data){
-    const student = state.students.find(x=>x.id===id);
-    if(student) Object.assign(student, data);
-    save(); renderDashboard();
-  }
-
-  // 古いupdatePayment関数を削除（API版を使用）
-
-  function removeStudent(id){
-    state.students = state.students.filter(x=>x.id!==id);
-    for(const k in state.weekly){ if(state.weekly[k][id]) delete state.weekly[k][id]; }
-    for(const k in state.monthly){ if(state.monthly[k][id]) delete state.monthly[k][id]; }
-    save(); renderDashboard();
-  }
+  // Old localStorage-based functions removed - using API versions instead
 
   /*** Modals ***/
   const addStudentDlg = $('#addStudentDlg');
@@ -558,7 +516,7 @@
           if(isNaN(state.ui.monthStart.getTime())) state.ui.monthStart = startOfMonth(now);
           if(isNaN(state.ui.calendarStart.getTime())) state.ui.calendarStart = startOfMonth(now);
           
-          save(); renderDashboard(); alert('インポートしました。');
+          renderDashboard(); alert('インポートしました。');
         }catch(e){ alert('インポートに失敗しました: '+e.message); }
       };
       reader.readAsText(file);
@@ -666,6 +624,7 @@
     console.log('API_ENDPOINTS:', API_ENDPOINTS);
     
     initTheme();
+    initializeDates();
     
     // Load data from backend
     console.log('Loading data from backend...');
