@@ -165,10 +165,10 @@
     }
   }
 
-  async function updateWeeklyCheck(weekKey, studentId, checkType, value, date = '') {
+  async function updateWeeklyCheck(weekKey, studentId, checkType, value, date = '', memo = '') {
     try {
       const currentData = state.weekly[weekKey] || {};
-      const studentData = currentData[studentId] || { dm: false, dmDate: '', lesson: false, lessonDate: '' };
+      const studentData = currentData[studentId] || { dm: false, dmDate: '', lesson: false, lessonDate: '', lessonMemo: '' };
       
       if (checkType === 'dm') {
         studentData.dm = value;
@@ -176,6 +176,7 @@
       } else if (checkType === 'lesson') {
         studentData.lesson = value;
         studentData.lessonDate = date;
+        studentData.lessonMemo = memo;
       }
 
       await api.post(API_ENDPOINTS.WEEKLY, {
@@ -184,7 +185,8 @@
         dm: studentData.dm,
         dmDate: studentData.dmDate,
         lesson: studentData.lesson,
-        lessonDate: studentData.lessonDate
+        lessonDate: studentData.lessonDate,
+        lessonMemo: studentData.lessonMemo
       });
 
       if (!state.weekly[weekKey]) {
@@ -329,7 +331,7 @@
       let done = 0, total = 0;
 
       if(mode==='weekly'){
-        const wk = state.weekly[key][s.id] || {dm:false, dmDate:'', lesson:false, lessonDate:''};
+        const wk = state.weekly[key][s.id] || {dm:false, dmDate:'', lesson:false, lessonDate:'', lessonMemo:''};
         // DM 調整
         checks.appendChild(dateInputItem(
           `dm-${s.id}`,
@@ -340,14 +342,15 @@
             updateWeeklyCheck(key, s.id, 'dm', val, date); 
           }
         ));
-        // レッスン実施
-        checks.appendChild(dateInputItem(
+        // レッスン実施（メモ付き）
+        checks.appendChild(lessonInputItemWithMemo(
           `lesson-${s.id}`,
           'レッスンを実施した',
           wk.lesson,
           wk.lessonDate,
-          (val, date)=>{ 
-            updateWeeklyCheck(key, s.id, 'lesson', val, date); 
+          wk.lessonMemo,
+          (val, date, memo)=>{ 
+            updateWeeklyCheck(key, s.id, 'lesson', val, date, memo); 
           }
         ));
         done += (wk.dm?1:0) + (wk.lesson?1:0);
@@ -426,6 +429,104 @@
     dateInput.addEventListener('change', e=>{
       const hasDate = e.target.value !== '';
       onChange(hasDate, e.target.value);
+      save(); render();
+    });
+    
+    return wrap;
+  }
+
+  function lessonInputItemWithMemo(id, label, checked, dateValue, memoValue, onChange){
+    const wrap = document.createElement('div');
+    wrap.className = 'check';
+    wrap.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 10px; width: 100%;">
+        <div style="
+          width: 20px; height: 20px; 
+          border: 2px solid ${checked ? 'var(--ok)' : 'rgba(255,255,255,.3)'}; 
+          border-radius: 4px; 
+          background: ${checked ? 'var(--ok)' : 'transparent'};
+          display: flex; align-items: center; justify-content: center;
+          margin-top: 2px;
+          color: white; font-size: 12px; font-weight: bold;
+        ">${checked ? '✓' : ''}</div>
+        <div style="flex: 1;">
+          <div>${escapeHtml(label)}</div>
+          <div class="cap">日付を入力すると完了になります</div>
+          <div style="margin-top: 8px;">
+            <input type="date" id="${id}-date" value="${dateValue}" style="
+              background: rgba(255,255,255,.05);
+              border: 1px solid rgba(255,255,255,.1);
+              padding: 6px 8px;
+              border-radius: 6px;
+              color: var(--ink);
+              font-size: 12px;
+              margin-bottom: 8px;
+              width: 100%;
+              box-sizing: border-box;
+            " placeholder="日付を選択" />
+            <div class="cap" style="margin-bottom: 8px;">
+              実施日を記録
+            </div>
+            <div style="margin-bottom: 8px;">
+              <button type="button" id="${id}-memo-toggle" style="
+                background: rgba(255,255,255,.1);
+                border: 1px solid rgba(255,255,255,.2);
+                padding: 4px 8px;
+                border-radius: 4px;
+                color: var(--ink);
+                font-size: 11px;
+                cursor: pointer;
+              ">📝 レッスンメモ</button>
+            </div>
+            <div id="${id}-memo-container" style="display: none; margin-top: 8px;">
+              <textarea id="${id}-memo" placeholder="レッスン内容、生徒さんの興味、今後の方針など..." style="
+                background: rgba(255,255,255,.05);
+                border: 1px solid rgba(255,255,255,.1);
+                padding: 8px;
+                border-radius: 6px;
+                color: var(--ink);
+                font-size: 12px;
+                width: 100%;
+                min-height: 80px;
+                box-sizing: border-box;
+                resize: vertical;
+                font-family: inherit;
+              ">${escapeHtml(memoValue || '')}</textarea>
+              <div class="cap" style="margin-top: 4px;">
+                レッスンレポート（任意）
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const dateInput = $(`#${id}-date`, wrap);
+    const memoToggle = $(`#${id}-memo-toggle`, wrap);
+    const memoContainer = $(`#${id}-memo-container`, wrap);
+    const memoTextarea = $(`#${id}-memo`, wrap);
+    const checkmark = $('div:first-child', wrap);
+    
+    // メモトグル機能
+    memoToggle.addEventListener('click', () => {
+      const isVisible = memoContainer.style.display !== 'none';
+      memoContainer.style.display = isVisible ? 'none' : 'block';
+      memoToggle.textContent = isVisible ? '📝 レッスンメモ' : '📝 メモを閉じる';
+    });
+    
+    // 日付変更時
+    dateInput.addEventListener('change', e => {
+      const hasDate = e.target.value !== '';
+      const memo = memoTextarea.value;
+      onChange(hasDate, e.target.value, memo);
+      save(); render();
+    });
+    
+    // メモ変更時
+    memoTextarea.addEventListener('input', e => {
+      const hasDate = dateInput.value !== '';
+      const memo = e.target.value;
+      onChange(hasDate, dateInput.value, memo);
       save(); render();
     });
     

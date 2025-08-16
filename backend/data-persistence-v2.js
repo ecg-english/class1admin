@@ -194,6 +194,7 @@ class DataPersistenceV2 {
             dm_date TEXT,
             lesson BOOLEAN DEFAULT 0,
             lesson_date TEXT,
+            lesson_memo TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (student_id) REFERENCES students (id),
             UNIQUE(week_key, student_id)

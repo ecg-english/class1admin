@@ -27,7 +27,8 @@ router.get('/:weekKey', (req, res) => {
         dm: Boolean(row.dm),
         dmDate: row.dm_date || '',
         lesson: Boolean(row.lesson),
-        lessonDate: row.lesson_date || ''
+        lessonDate: row.lesson_date || '',
+        lessonMemo: row.lesson_memo || ''
       };
     });
     
@@ -37,7 +38,7 @@ router.get('/:weekKey', (req, res) => {
 
 // Update weekly check
 router.post('/', (req, res) => {
-  const { weekKey, studentId, dm, dmDate, lesson, lessonDate } = req.body;
+  const { weekKey, studentId, dm, dmDate, lesson, lessonDate, lessonMemo } = req.body;
   
   if (!weekKey || !studentId) {
     res.status(400).json({ error: 'weekKey and studentId are required' });
@@ -45,16 +46,16 @@ router.post('/', (req, res) => {
   }
   
   const sql = `
-    INSERT OR REPLACE INTO weekly_checks (week_key, student_id, dm, dm_date, lesson, lesson_date)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO weekly_checks (week_key, student_id, dm, dm_date, lesson, lesson_date, lesson_memo)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   
-  db.getDb().run(sql, [weekKey, studentId, dm ? 1 : 0, dmDate, lesson ? 1 : 0, lessonDate], function(err) {
+  db.getDb().run(sql, [weekKey, studentId, dm ? 1 : 0, dmDate, lesson ? 1 : 0, lessonDate, lessonMemo || ''], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ weekKey, studentId, dm, dmDate, lesson, lessonDate });
+    res.json({ weekKey, studentId, dm, dmDate, lesson, lessonDate, lessonMemo: lessonMemo || '' });
   });
 });
 
