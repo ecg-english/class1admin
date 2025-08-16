@@ -460,7 +460,8 @@
         if(!student) continue;
         
         // Filter by instructor if selected
-        if(state.ui.selectedInstructor !== 'all' && student.instructorId !== state.ui.selectedInstructor) {
+        const instructorId = student.instructor_id || student.instructorId;
+        if(state.ui.selectedInstructor !== 'all' && instructorId !== state.ui.selectedInstructor) {
           continue;
         }
         
@@ -530,9 +531,9 @@
         const eventClass = event.type === 'completed' ? 'lesson-event completed' : 'lesson-event scheduled';
         const eventText = event.type === 'completed' ? '実施済み' : '予定';
         calendarHTML += `
-          <div class="${eventClass}" title="${event.student.name} - ${getInstructorName(event.student.instructorId)}">
+          <div class="${eventClass}" title="${event.student.name} - ${getStudentInstructorName(event.student)}">
             <div class="student-name">${escapeHtml(event.student.name)}</div>
-            <div class="instructor">${eventText} (${escapeHtml(getInstructorName(event.student.instructorId))})</div>
+            <div class="instructor">${eventText} (${escapeHtml(getStudentInstructorName(event.student))})</div>
           </div>
         `;
       });
