@@ -56,27 +56,8 @@ function init() {
     console.log('Database exists at', dbPath, ':', dbExists);
     
     if (dbExists) {
-      // データベースが存在する場合、内容をチェック
-      try {
-        const tempDb = new sqlite3.Database(dbPath);
-        tempDb.get('SELECT COUNT(*) as count FROM students', [], (err, row) => {
-          if (err) {
-            console.log('Database exists but has errors, attempting restore...');
-            tempDb.close();
-            attemptRestore();
-          } else {
-            console.log('Database exists with', row.count, 'students');
-            tempDb.close();
-            if (row.count === 0) {
-              console.log('Database is empty, attempting restore from backup...');
-              attemptRestore();
-            }
-          }
-        });
-      } catch (error) {
-        console.log('Database file corrupted, attempting restore...');
-        attemptRestore();
-      }
+      // データベースが存在する場合、簡単なチェックのみ
+      console.log('Database exists, proceeding with initialization');
     } else {
       // データベースが存在しない場合、バックアップから復元
       console.log('Database does not exist, attempting restore from backup...');
@@ -204,7 +185,7 @@ function init() {
     console.log('Database file path:', dbPath);
     console.log('Database file size:', fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A', 'bytes');
     
-    // 初期データの投入（データが完全に空で、かつバックアップも存在しない場合のみ）
+    // 初期データの投入（バックアップが存在しない場合のみ）
     // 本番環境でのみ実行し、開発環境ではスキップ
     if (process.env.NODE_ENV === 'production') {
       // バックアップの存在をチェック
@@ -218,7 +199,7 @@ function init() {
       console.log('Backup exists:', hasBackup);
       
       if (!hasBackup) {
-        console.log('No backup found, will insert initial data if database is empty');
+        console.log('No backup found, will insert initial data');
         insertInitialData();
       } else {
         console.log('Backup found, skipping initial data insertion');
@@ -230,17 +211,17 @@ function init() {
 function insertInitialData() {
   console.log('Starting initial data insertion...');
   
-  // データベースが完全に空の場合のみ初期データを投入
-  db.get('SELECT COUNT(*) as total FROM (SELECT 1 FROM instructors UNION SELECT 1 FROM students)', [], (err, row) => {
+  // 簡単なチェックのみ
+  db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
     if (err) {
-      console.error('Error checking database state:', err);
+      console.error('Error checking instructors:', err);
       return;
     }
     
-    console.log('Total records in database:', row.total);
+    console.log('Current instructors count:', row.count);
     
-    if (row.total === 0) {
-      console.log('Database is completely empty, inserting initial data...');
+    if (row.count === 0) {
+      console.log('No instructors found, inserting initial data...');
       
       // 講師データを投入
       const instructors = [
@@ -337,12 +318,12 @@ function backupDatabase() {
   }
 }
 
-// より頻繁なバックアップ（1分ごと）
+// バックアップ（5分ごと）
 if (process.env.NODE_ENV === 'production') {
-  setInterval(backupDatabase, 1 * 60 * 1000);
+  setInterval(backupDatabase, 5 * 60 * 1000);
   
   // 起動時にもバックアップを作成
-  setTimeout(backupDatabase, 5000); // 5秒後に初回バックアップ
+  setTimeout(backupDatabase, 10000); // 10秒後に初回バックアップ
 }
 
 module.exports = {
