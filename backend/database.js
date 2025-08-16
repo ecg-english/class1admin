@@ -4,7 +4,12 @@ const path = require('path');
 let db;
 
 function init() {
-  const dbPath = path.join(__dirname, 'class1admin.db');
+  // Render環境では永続化されたディレクトリを使用
+  const dbPath = process.env.NODE_ENV === 'production' 
+    ? '/tmp/class1admin.db'  // Renderの永続化ディレクトリ
+    : path.join(__dirname, 'class1admin.db');
+  
+  console.log('Database path:', dbPath);
   db = new sqlite3.Database(dbPath);
   
   // Create tables
@@ -92,6 +97,80 @@ function init() {
     `);
     
     console.log('Database initialized successfully');
+    
+    // 初期データの投入（データが空の場合のみ）
+    insertInitialData();
+  });
+}
+
+function insertInitialData() {
+  // 講師データが空の場合、初期データを投入
+  db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
+    if (err) {
+      console.error('Error checking instructors count:', err);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Inserting initial instructor data...');
+      const instructors = [
+        { id: 'i_taichi', name: 'Taichi' },
+        { id: 'i_takaya', name: 'Takaya' },
+        { id: 'i_haruka', name: 'Haruka' }
+      ];
+      
+      instructors.forEach(instructor => {
+        db.run('INSERT INTO instructors (id, name) VALUES (?, ?)', 
+          [instructor.id, instructor.name], (err) => {
+          if (err) {
+            console.error('Error inserting instructor:', err);
+          } else {
+            console.log(`Inserted instructor: ${instructor.name}`);
+          }
+        });
+      });
+    }
+  });
+  
+  // 生徒データが空の場合、初期データを投入
+  db.get('SELECT COUNT(*) as count FROM students', [], (err, row) => {
+    if (err) {
+      console.error('Error checking students count:', err);
+      return;
+    }
+    
+    if (row.count === 0) {
+      console.log('Inserting initial student data...');
+      const students = [
+        { 
+          id: 's_mohamed', 
+          name: 'Mohamed Taqi', 
+          instructor_id: 'i_taichi',
+          member_number: 'k11',
+          email: 'mt.taqi@gmail.com',
+          note: ''
+        },
+        { 
+          id: 's_test1', 
+          name: 'test1', 
+          instructor_id: 'i_takaya',
+          member_number: 'k12',
+          email: 'test1@gmail.com',
+          note: '文化を学びたい'
+        }
+      ];
+      
+      students.forEach(student => {
+        db.run('INSERT INTO students (id, name, instructor_id, member_number, email, note) VALUES (?, ?, ?, ?, ?, ?)', 
+          [student.id, student.name, student.instructor_id, student.member_number, student.email, student.note], (err) => {
+          if (err) {
+            console.error('Error inserting student:', err);
+          } else {
+            console.log(`Inserted student: ${student.name}`);
+          }
+        });
+      });
+    }
   });
 }
 
