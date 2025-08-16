@@ -532,10 +532,9 @@
         const eventClass = event.type === 'completed' ? 'lesson-event completed' : 'lesson-event scheduled';
         const eventText = event.type === 'completed' ? '実施済み' : '予定';
         calendarHTML += `
-          <div class="${eventClass}" title="${event.student.name} (${event.student.member_number || event.student.memberNumber || ''}) - ${getStudentInstructorName(event.student)}">
+          <div class="${eventClass}" title="${event.student.name} - ${getStudentInstructorName(event.student)}">
             <div class="student-name">${escapeHtml(event.student.name)}</div>
             <div class="instructor">${eventText} (${escapeHtml(getStudentInstructorName(event.student))})</div>
-            <div class="member-number">${escapeHtml(event.student.member_number || event.student.memberNumber || '')}</div>
           </div>
         `;
       });

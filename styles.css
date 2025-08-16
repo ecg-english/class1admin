@@ -357,15 +357,7 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
   white-space: nowrap;
 }
 
-.lesson-event .member-number {
-  font-size: 9px;
-  opacity: 0.8;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 1px;
-}
+
 
 /* スマホ版のカレンダー調整 */
 @media (max-width: 768px) {
@@ -406,10 +398,7 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
     max-width: 100%;
   }
   
-  .lesson-event .member-number {
-    font-size: 8px;
-    max-width: 100%;
-  }
+
   
   .calendar-header > div {
     padding: 8px 4px;
