@@ -283,7 +283,6 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
   margin-bottom: 4px;
 }
 .lesson-event {
-  background: linear-gradient(135deg, var(--accent2), #8b5cf6);
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
@@ -296,10 +295,54 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
   width: 100%;
   box-sizing: border-box;
   display: block;
+  transition: all 0.2s ease;
 }
-.lesson-event:hover {
-  filter: brightness(1.1);
+
+/* レッスン予定（これから実施予定） */
+.lesson-event.scheduled {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-left: 3px solid #60a5fa;
 }
+
+.lesson-event.scheduled:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* レッスン実施済み */
+.lesson-event.completed {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-left: 3px solid #34d399;
+}
+
+.lesson-event.completed:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* ライトテーマ対応 */
+[data-theme="light"] .lesson-event.scheduled {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-left: 3px solid #60a5fa;
+}
+
+[data-theme="light"] .lesson-event.scheduled:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="light"] .lesson-event.completed {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-left: 3px solid #34d399;
+}
+
+[data-theme="light"] .lesson-event.completed:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
 .lesson-event .student-name {
   font-weight: 600;
   overflow: hidden;
@@ -332,6 +375,15 @@ dialog{border:0;border-radius:16px;padding:0;max-width:480px;width:calc(100% - 3
     margin: 1px 0;
     max-width: 100%;
     box-sizing: border-box;
+    border-left-width: 2px;
+  }
+  
+  .lesson-event.scheduled {
+    border-left: 2px solid #60a5fa;
+  }
+  
+  .lesson-event.completed {
+    border-left: 2px solid #34d399;
   }
   
   .lesson-event .student-name {
