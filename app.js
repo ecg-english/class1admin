@@ -280,7 +280,13 @@
     // Filter students by instructor if needed
     let filteredStudents = state.students;
     if(state.ui.selectedInstructor !== 'all') {
-      filteredStudents = state.students.filter(s => s.instructorId === state.ui.selectedInstructor);
+      console.log('Filtering by instructor:', state.ui.selectedInstructor);
+      filteredStudents = state.students.filter(s => {
+        const instructorId = s.instructor_id || s.instructorId;
+        console.log(`Student ${s.name}: instructor_id=${instructorId}, selected=${state.ui.selectedInstructor}, match=${instructorId === state.ui.selectedInstructor}`);
+        return instructorId === state.ui.selectedInstructor;
+      });
+      console.log('Filtered students:', filteredStudents);
     }
     
     if(filteredStudents.length===0){
