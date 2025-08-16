@@ -5,11 +5,16 @@ let db;
 
 function init() {
   // Render環境では永続化されたディレクトリを使用
-  const dbPath = process.env.NODE_ENV === 'production' 
-    ? '/tmp/class1admin.db'  // Renderの永続化ディレクトリ
-    : path.join(__dirname, 'class1admin.db');
+  let dbPath;
+  if (process.env.NODE_ENV === 'production') {
+    // Renderの永続化ディレクトリを試す
+    dbPath = '/tmp/class1admin.db';
+    console.log('Using production database path:', dbPath);
+  } else {
+    dbPath = path.join(__dirname, 'class1admin.db');
+    console.log('Using development database path:', dbPath);
+  }
   
-  console.log('Database path:', dbPath);
   db = new sqlite3.Database(dbPath);
   
   // Create tables
