@@ -10,6 +10,14 @@ function init() {
     // Renderの永続化ディレクトリを試す
     dbPath = '/tmp/class1admin.db';
     console.log('Using production database path:', dbPath);
+    
+    // データベースファイルの存在確認
+    const fs = require('fs');
+    if (fs.existsSync(dbPath)) {
+      console.log('Database file exists, size:', fs.statSync(dbPath).size, 'bytes');
+    } else {
+      console.log('Database file does not exist, will be created');
+    }
   } else {
     dbPath = path.join(__dirname, 'class1admin.db');
     console.log('Using development database path:', dbPath);
@@ -109,12 +117,16 @@ function init() {
 }
 
 function insertInitialData() {
+  console.log('Starting initial data insertion...');
+  
   // 講師データが空の場合、初期データを投入
   db.get('SELECT COUNT(*) as count FROM instructors', [], (err, row) => {
     if (err) {
       console.error('Error checking instructors count:', err);
       return;
     }
+    
+    console.log('Current instructors count:', row.count);
     
     if (row.count === 0) {
       console.log('Inserting initial instructor data...');
@@ -134,6 +146,8 @@ function insertInitialData() {
           }
         });
       });
+    } else {
+      console.log('Instructors already exist, skipping insertion');
     }
   });
   
@@ -143,6 +157,8 @@ function insertInitialData() {
       console.error('Error checking students count:', err);
       return;
     }
+    
+    console.log('Current students count:', row.count);
     
     if (row.count === 0) {
       console.log('Inserting initial student data...');
@@ -175,6 +191,8 @@ function insertInitialData() {
           }
         });
       });
+    } else {
+      console.log('Students already exist, skipping insertion');
     }
   });
 }

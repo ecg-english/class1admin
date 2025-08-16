@@ -35,6 +35,8 @@ router.get('/month/:monthKey', (req, res) => {
 
 // Submit new survey
 router.post('/', (req, res) => {
+  console.log('Survey submission received:', req.body);
+  
   const {
     memberNumber,
     studentName,
@@ -47,6 +49,7 @@ router.post('/', (req, res) => {
   } = req.body;
   
   if (!memberNumber) {
+    console.error('Member number is missing');
     res.status(400).json({ error: 'Member number is required' });
     return;
   }
@@ -71,9 +74,12 @@ router.post('/', (req, res) => {
     otherFeedback
   ], function(err) {
     if (err) {
+      console.error('Error inserting survey:', err);
       res.status(500).json({ error: err.message });
       return;
     }
+    
+    console.log('Survey inserted successfully, ID:', this.lastID);
     
     // Update student survey status
     updateStudentSurveyStatus(memberNumber);
@@ -133,17 +139,27 @@ router.get('/months', (req, res) => {
 });
 
 function updateStudentSurveyStatus(memberNumber) {
+  console.log('Updating survey status for member number:', memberNumber);
+  
   // Get current month
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  console.log('Current month:', currentMonth);
   
   // Find student by member number
   const findStudentSql = 'SELECT id FROM students WHERE member_number = ?';
   db.getDb().get(findStudentSql, [memberNumber], (err, student) => {
-    if (err || !student) {
+    if (err) {
       console.error('Error finding student:', err);
       return;
     }
+    
+    if (!student) {
+      console.error('Student not found for member number:', memberNumber);
+      return;
+    }
+    
+    console.log('Found student:', student);
     
     // Update survey status
     const updateSql = `
@@ -154,6 +170,8 @@ function updateStudentSurveyStatus(memberNumber) {
     db.getDb().run(updateSql, [currentMonth, student.id], (err) => {
       if (err) {
         console.error('Error updating survey status:', err);
+      } else {
+        console.log('Survey status updated successfully for student:', student.id);
       }
     });
   });
