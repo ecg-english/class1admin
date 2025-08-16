@@ -314,6 +314,7 @@
         <header class="row">
           <div class="name">${escapeHtml(s.name)}</div>
           <span class="tag">講師: ${escapeHtml(getStudentInstructorName(s))}</span>
+          <span class="tag">会員番号: ${escapeHtml(s.member_number || s.memberNumber || '')}</span>
           ${s.note ? `<span class="tag">${escapeHtml(s.note)}</span>`:''}
           <button class="btn ghost" data-edit="${s.id}" aria-label="編集">編集</button>
         </header>
@@ -531,9 +532,10 @@
         const eventClass = event.type === 'completed' ? 'lesson-event completed' : 'lesson-event scheduled';
         const eventText = event.type === 'completed' ? '実施済み' : '予定';
         calendarHTML += `
-          <div class="${eventClass}" title="${event.student.name} - ${getStudentInstructorName(event.student)}">
+          <div class="${eventClass}" title="${event.student.name} (${event.student.member_number || event.student.memberNumber || ''}) - ${getStudentInstructorName(event.student)}">
             <div class="student-name">${escapeHtml(event.student.name)}</div>
             <div class="instructor">${eventText} (${escapeHtml(getStudentInstructorName(event.student))})</div>
+            <div class="member-number">${escapeHtml(event.student.member_number || event.student.memberNumber || '')}</div>
           </div>
         `;
       });
