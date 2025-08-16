@@ -252,14 +252,18 @@
     
     state.students.forEach(student => {
       const payment = getStudentMonthlyData(student.id, currentMonth);
-      const instructor = state.instructors.find(i => i.id === student.instructorId);
+      // APIから返されるデータの形式に合わせて修正
+      const instructorId = student.instructor_id || student.instructorId;
+      const instructor = state.instructors.find(i => i.id === instructorId);
+      // instructor_nameが直接含まれている場合はそれを使用
+      const instructorName = student.instructor_name || (instructor ? instructor.name : '未設定');
       
       // PC版テーブル行
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${escapeHtml(student.name)}</td>
-        <td>${escapeHtml(instructor ? instructor.name : '未設定')}</td>
-        <td>${escapeHtml(student.memberNumber || '')}</td>
+        <td>${escapeHtml(instructorName)}</td>
+        <td>${escapeHtml(student.member_number || student.memberNumber || '')}</td>
         <td>${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</td>
         <td>${escapeHtml(student.note || '')}</td>
         <td>
@@ -284,7 +288,7 @@
       card.innerHTML = `
         <div class="student-card-header">
           <div class="student-name">${escapeHtml(student.name)}</div>
-          <div class="member-number">${escapeHtml(student.memberNumber || '')}</div>
+          <div class="member-number">${escapeHtml(student.member_number || student.memberNumber || '')}</div>
         </div>
         <div class="student-info">
           <div class="info-item">
@@ -293,7 +297,7 @@
           </div>
           <div class="info-item">
             <div class="info-label">担当講師</div>
-            <div class="info-value">${escapeHtml(instructor ? instructor.name : '未設定')}</div>
+            <div class="info-value">${escapeHtml(instructorName)}</div>
           </div>
           <div class="info-item">
             <div class="info-label">メモ</div>

@@ -202,6 +202,16 @@
     return instructor ? instructor.name : '未設定';
   }
 
+  function getStudentInstructorName(student){
+    // APIから返されるデータの形式に合わせて修正
+    if (student.instructor_name) {
+      return student.instructor_name;
+    }
+    const instructorId = student.instructor_id || student.instructorId;
+    const instructor = state.instructors.find(x => x.id === instructorId);
+    return instructor ? instructor.name : '未設定';
+  }
+
   /*** Rendering ***/
   async function render(){
     const mode = state.ui.mode;
@@ -297,7 +307,7 @@
       card.innerHTML = `
         <header class="row">
           <div class="name">${escapeHtml(s.name)}</div>
-          <span class="tag">講師: ${escapeHtml(getInstructorName(s.instructorId))}</span>
+          <span class="tag">講師: ${escapeHtml(getStudentInstructorName(s))}</span>
           ${s.note ? `<span class="tag">${escapeHtml(s.note)}</span>`:''}
           <button class="btn ghost" data-edit="${s.id}" aria-label="編集">編集</button>
         </header>
