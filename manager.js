@@ -304,7 +304,7 @@
         <td>${escapeHtml(student.name)}</td>
         <td>${escapeHtml(instructorName)}</td>
         <td>${escapeHtml(student.member_number || student.memberNumber || '')}</td>
-        <td>${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</td>
+        <td>${escapeHtml((student.registration_date || student.registrationDate) ? fmtDate(new Date(student.registration_date || student.registrationDate)) : '')}</td>
         <td>${escapeHtml(student.note || '')}</td>
         <td>
           <button class="payment-toggle ${payment.paid ? 'paid' : 'unpaid'}" data-student="${student.id}" data-type="payment">
@@ -333,7 +333,7 @@
         <div class="student-info">
           <div class="info-item">
             <div class="info-label">登録日</div>
-            <div class="info-value">${escapeHtml(student.registrationDate ? fmtDate(new Date(student.registrationDate)) : '')}</div>
+            <div class="info-value">${escapeHtml((student.registration_date || student.registrationDate) ? fmtDate(new Date(student.registration_date || student.registrationDate)) : '')}</div>
           </div>
           <div class="info-item">
             <div class="info-label">担当講師</div>
@@ -478,7 +478,7 @@
     $('#editStudentNote').value = student.note || '';
     $('#editStudentMemberNumber').value = student.memberNumber || '';
     $('#editStudentEmail').value = student.email || '';
-    $('#editStudentRegistrationDate').value = student.registrationDate || '';
+    $('#editStudentRegistrationDate').value = student.registration_date || student.registrationDate || '';
     $('#editStudentPayment').value = payment.paid.toString();
     $('#editStudentSurvey').value = payment.survey.toString();
     
