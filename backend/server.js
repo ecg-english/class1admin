@@ -34,6 +34,7 @@ app.get('/api/health', (req, res) => {
 // Database status endpoint
 app.get('/api/db-status', (req, res) => {
   const fs = require('fs');
+  const sqlite3 = require('sqlite3').verbose();
   const dbPath = '/tmp/class1admin.db';
   const backupPaths = [
     '/tmp/class1admin_backup.db',
@@ -52,7 +53,76 @@ app.get('/api/db-status', (req, res) => {
     timestamp: new Date().toISOString()
   };
   
-  res.json(status);
+  // データベースの内容もチェック
+  if (fs.existsSync(dbPath)) {
+    try {
+      const tempDb = new sqlite3.Database(dbPath);
+      tempDb.get('SELECT COUNT(*) as studentCount FROM students', [], (err, studentRow) => {
+        if (!err) {
+          status.studentCount = studentRow.studentCount;
+        }
+        tempDb.get('SELECT COUNT(*) as instructorCount FROM instructors', [], (err, instructorRow) => {
+          if (!err) {
+            status.instructorCount = instructorRow.instructorCount;
+          }
+          tempDb.close();
+          res.json(status);
+        });
+      });
+    } catch (error) {
+      status.error = error.message;
+      res.json(status);
+    }
+  } else {
+    res.json(status);
+  }
+});
+
+// Manual database restore endpoint
+app.post('/api/db-restore', (req, res) => {
+  if (process.env.NODE_ENV !== 'production') {
+    res.status(403).json({ error: 'Restore only available in production' });
+    return;
+  }
+  
+  const fs = require('fs');
+  const backupPaths = [
+    '/tmp/class1admin_backup.db',
+    '/opt/render/project/src/class1admin_backup.db',
+    '/app/class1admin_backup.db'
+  ];
+  
+  let restored = false;
+  let restorePath = '';
+  
+  for (const backupPath of backupPaths) {
+    if (fs.existsSync(backupPath)) {
+      try {
+        const dbPath = '/tmp/class1admin.db';
+        if (fs.existsSync(dbPath)) {
+          fs.unlinkSync(dbPath);
+        }
+        fs.copyFileSync(backupPath, dbPath);
+        restored = true;
+        restorePath = backupPath;
+        break;
+      } catch (error) {
+        console.error('Failed to restore from backup:', backupPath, error);
+      }
+    }
+  }
+  
+  if (restored) {
+    res.json({ 
+      success: true, 
+      message: 'Database restored successfully',
+      backupPath: restorePath
+    });
+  } else {
+    res.status(500).json({ 
+      error: 'No backup found or restore failed' 
+    });
+  }
 });
 
 // Serve static files in production

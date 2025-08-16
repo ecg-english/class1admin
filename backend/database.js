@@ -51,23 +51,67 @@ function init() {
       '/app/class1admin_backup.db'
     ];
     
-    // バックアップからの復元を試行
-    let restored = false;
-    for (const backupPath of backupPaths) {
-      if (fs.existsSync(backupPath) && !fs.existsSync(dbPath)) {
-        try {
-          fs.copyFileSync(backupPath, dbPath);
-          console.log('Database restored from backup:', backupPath);
-          restored = true;
-          break;
-        } catch (error) {
-          console.error('Failed to restore from backup:', backupPath, error);
-        }
+    // データベースファイルの存在確認
+    const dbExists = fs.existsSync(dbPath);
+    console.log('Database exists at', dbPath, ':', dbExists);
+    
+    if (dbExists) {
+      // データベースが存在する場合、内容をチェック
+      try {
+        const tempDb = new sqlite3.Database(dbPath);
+        tempDb.get('SELECT COUNT(*) as count FROM students', [], (err, row) => {
+          if (err) {
+            console.log('Database exists but has errors, attempting restore...');
+            tempDb.close();
+            attemptRestore();
+          } else {
+            console.log('Database exists with', row.count, 'students');
+            tempDb.close();
+            if (row.count === 0) {
+              console.log('Database is empty, attempting restore from backup...');
+              attemptRestore();
+            }
+          }
+        });
+      } catch (error) {
+        console.log('Database file corrupted, attempting restore...');
+        attemptRestore();
       }
+    } else {
+      // データベースが存在しない場合、バックアップから復元
+      console.log('Database does not exist, attempting restore from backup...');
+      attemptRestore();
     }
     
-    if (!restored) {
-      console.log('No backup found or restore failed, will create new database');
+    function attemptRestore() {
+      let restored = false;
+      for (const backupPath of backupPaths) {
+        if (fs.existsSync(backupPath)) {
+          try {
+            // 既存のデータベースファイルを削除（存在する場合）
+            if (fs.existsSync(dbPath)) {
+              fs.unlinkSync(dbPath);
+            }
+            fs.copyFileSync(backupPath, dbPath);
+            console.log('Database restored from backup:', backupPath);
+            restored = true;
+            break;
+          } catch (error) {
+            console.error('Failed to restore from backup:', backupPath, error);
+          }
+        }
+      }
+      
+      if (!restored) {
+        console.log('No backup found or restore failed, will create new database');
+      } else {
+        // 復元後、データベース接続を再作成
+        if (db) {
+          db.close();
+        }
+        db = new sqlite3.Database(dbPath);
+        console.log('Database connection recreated after restore');
+      }
     }
   }
   
@@ -160,10 +204,25 @@ function init() {
     console.log('Database file path:', dbPath);
     console.log('Database file size:', fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A', 'bytes');
     
-    // 初期データの投入（データが空の場合のみ）
+    // 初期データの投入（データが完全に空で、かつバックアップも存在しない場合のみ）
     // 本番環境でのみ実行し、開発環境ではスキップ
     if (process.env.NODE_ENV === 'production') {
-      insertInitialData();
+      // バックアップの存在をチェック
+      const backupPaths = [
+        '/tmp/class1admin_backup.db',
+        '/opt/render/project/src/class1admin_backup.db',
+        '/app/class1admin_backup.db'
+      ];
+      
+      const hasBackup = backupPaths.some(path => fs.existsSync(path));
+      console.log('Backup exists:', hasBackup);
+      
+      if (!hasBackup) {
+        console.log('No backup found, will insert initial data if database is empty');
+        insertInitialData();
+      } else {
+        console.log('Backup found, skipping initial data insertion');
+      }
     }
   });
 }
@@ -278,9 +337,12 @@ function backupDatabase() {
   }
 }
 
-// より頻繁なバックアップ（2分ごと）
+// より頻繁なバックアップ（1分ごと）
 if (process.env.NODE_ENV === 'production') {
-  setInterval(backupDatabase, 2 * 60 * 1000);
+  setInterval(backupDatabase, 1 * 60 * 1000);
+  
+  // 起動時にもバックアップを作成
+  setTimeout(backupDatabase, 5000); // 5秒後に初回バックアップ
 }
 
 module.exports = {
