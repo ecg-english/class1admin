@@ -16,7 +16,11 @@ if (!process.env.NODE_ENV) {
 }
 
 // Initialize database
-db.init();
+db.init().then(() => {
+  console.log('Database initialization completed');
+}).catch(error => {
+  console.error('Database initialization failed:', error);
+});
 
 // API Routes
 app.use('/api/instructors', require('./routes/instructors'));

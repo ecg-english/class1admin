@@ -1,99 +1,33 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const DataPersistence = require('./data-persistence');
 
 let db;
+let dataPersistence;
 
-function init() {
-  // Render環境では永続化されたディレクトリを使用
-  let dbPath;
-  const fs = require('fs');
+async function init() {
+  // データ永続化システムの初期化
+  dataPersistence = new DataPersistence();
   
   if (process.env.NODE_ENV === 'production') {
-    // より多くの永続化ディレクトリを試す
-    const possiblePaths = [
-      '/tmp/class1admin.db',
-      '/opt/render/project/src/class1admin.db',
-      '/app/class1admin.db',
-      '/var/tmp/class1admin.db',
-      '/home/render/class1admin.db',
-      process.env.HOME + '/class1admin.db'
-    ].filter(p => p); // undefinedを除外
-    
-    console.log('Searching for existing database in paths:', possiblePaths);
-    
-    // 既存のデータベースファイルを探す
-    for (const path of possiblePaths) {
-      if (fs.existsSync(path)) {
-        dbPath = path;
-        console.log('Found existing database at:', dbPath);
-        console.log('Database size:', fs.statSync(dbPath).size, 'bytes');
-        break;
-      }
-    }
-    
-    // 見つからない場合は/tmpに作成
-    if (!dbPath) {
-      dbPath = '/tmp/class1admin.db';
-      console.log('No existing database found, creating new one at:', dbPath);
-    }
-  } else {
-    dbPath = path.join(__dirname, 'class1admin.db');
-    console.log('Using development database path:', dbPath);
+    // 本番環境ではデータ永続化を確保
+    await dataPersistence.ensureDatabase();
   }
   
+  // データベースパスの設定
+  let dbPath;
+  if (process.env.NODE_ENV === 'production') {
+    dbPath = '/tmp/class1admin.db';
+  } else {
+    dbPath = path.join(__dirname, 'class1admin.db');
+  }
+  
+  console.log('Using database path:', dbPath);
   db = new sqlite3.Database(dbPath);
   
-  // より強固なバックアップ・復元システム（本番環境のみ）
+  // 定期的なバックアップを開始
   if (process.env.NODE_ENV === 'production') {
-    const backupPaths = [
-      '/tmp/class1admin_backup.db',
-      '/opt/render/project/src/class1admin_backup.db',
-      '/app/class1admin_backup.db'
-    ];
-    
-    // データベースファイルの存在確認
-    const dbExists = fs.existsSync(dbPath);
-    console.log('Database exists at', dbPath, ':', dbExists);
-    
-    if (dbExists) {
-      // データベースが存在する場合、簡単なチェックのみ
-      console.log('Database exists, proceeding with initialization');
-    } else {
-      // データベースが存在しない場合、バックアップから復元
-      console.log('Database does not exist, attempting restore from backup...');
-      attemptRestore();
-    }
-    
-    function attemptRestore() {
-      let restored = false;
-      for (const backupPath of backupPaths) {
-        if (fs.existsSync(backupPath)) {
-          try {
-            // 既存のデータベースファイルを削除（存在する場合）
-            if (fs.existsSync(dbPath)) {
-              fs.unlinkSync(dbPath);
-            }
-            fs.copyFileSync(backupPath, dbPath);
-            console.log('Database restored from backup:', backupPath);
-            restored = true;
-            break;
-          } catch (error) {
-            console.error('Failed to restore from backup:', backupPath, error);
-          }
-        }
-      }
-      
-      if (!restored) {
-        console.log('No backup found or restore failed, will create new database');
-      } else {
-        // 復元後、データベース接続を再作成
-        if (db) {
-          db.close();
-        }
-        db = new sqlite3.Database(dbPath);
-        console.log('Database connection recreated after restore');
-      }
-    }
+    dataPersistence.startPeriodicBackup();
   }
   
   // Create tables
@@ -272,11 +206,9 @@ function insertInitialData() {
         });
       });
     } else {
-      console.log('Database has existing data, skipping initial data insertion');
+      console.log('Instructors already exist, skipping insertion');
     }
   });
-  
-
 }
 
 function getDb() {
@@ -289,41 +221,11 @@ function close() {
   }
 }
 
-// データベースの定期バックアップ（複数バックアップ）
+// 新しいデータ永続化システムを使用
 function backupDatabase() {
-  if (process.env.NODE_ENV === 'production') {
-    const fs = require('fs');
-    const currentDbPath = '/tmp/class1admin.db';
-    const backupPaths = [
-      '/tmp/class1admin_backup.db',
-      '/opt/render/project/src/class1admin_backup.db',
-      '/app/class1admin_backup.db'
-    ];
-    
-    if (fs.existsSync(currentDbPath)) {
-      let successCount = 0;
-      for (const backupPath of backupPaths) {
-        try {
-          fs.copyFileSync(currentDbPath, backupPath);
-          console.log('Database backup created at:', backupPath);
-          successCount++;
-        } catch (error) {
-          console.error('Failed to create database backup at:', backupPath, error);
-        }
-      }
-      console.log(`Database backup completed: ${successCount}/${backupPaths.length} locations`);
-    } else {
-      console.warn('Current database file not found for backup');
-    }
+  if (dataPersistence) {
+    dataPersistence.createBackup();
   }
-}
-
-// バックアップ（5分ごと）
-if (process.env.NODE_ENV === 'production') {
-  setInterval(backupDatabase, 5 * 60 * 1000);
-  
-  // 起動時にもバックアップを作成
-  setTimeout(backupDatabase, 10000); // 10秒後に初回バックアップ
 }
 
 module.exports = {
