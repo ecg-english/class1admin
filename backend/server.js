@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const DatabaseSelector = require('./database-selector');
+const db = require('./database');
 const EmergencyDataRecovery = require('./emergency-data-recovery');
 
 const app = express();
@@ -16,16 +16,9 @@ if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'production';
 }
 
-// Initialize database selector
-const dbSelector = new DatabaseSelector();
-dbSelector.init().then(() => {
+// Initialize database
+db.init().then(() => {
   console.log('Database initialization completed');
-  
-  // Set database pool in app.locals for routes
-  if (dbSelector.getDbType() === 'postgres') {
-    app.locals.dbPool = dbSelector.getDb();
-    console.log('PostgreSQL pool set in app.locals');
-  }
 }).catch(error => {
   console.error('Database initialization failed:', error);
 });
@@ -46,7 +39,7 @@ app.get('/api/health', (req, res) => {
 // Database status endpoint (enhanced)
 app.get('/api/db-status', async (req, res) => {
   try {
-    const status = await dbSelector.getStatus();
+    const status = await db.getStatus();
     res.json(status);
   } catch (error) {
     res.status(500).json({
