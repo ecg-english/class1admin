@@ -4,8 +4,8 @@
   "description": "Backend API for Class1 Admin System",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node emergency-server.js",
+    "dev": "nodemon emergency-server.js",
     "test-db": "node test-postgres-connection.js",
     "init-db": "node init-postgres-db.js"
   },
