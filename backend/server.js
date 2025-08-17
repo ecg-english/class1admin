@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const db = require('./simple-database');
+const db = require('./minimal-database');
 const EmergencyDataRecovery = require('./emergency-data-recovery');
 
 const app = express();
@@ -21,6 +21,7 @@ db.init().then(() => {
   console.log('Database initialization completed');
 }).catch(error => {
   console.error('Database initialization failed:', error);
+  // エラーが発生してもサーバーは起動し続ける
 });
 
 // API Routes
