@@ -238,6 +238,88 @@ app.post('/api/students', (req, res) => {
   });
 });
 
+// Update student
+app.put('/api/students/:id', (req, res) => {
+  if (!db) {
+    res.status(500).json({ error: 'Database not initialized' });
+    return;
+  }
+  
+  const { id } = req.params;
+  const { name, instructorId, email, note, registrationDate } = req.body;
+  
+  if (!name) {
+    res.status(400).json({ error: 'Name is required' });
+    return;
+  }
+  
+  db.run('UPDATE students SET name = ?, instructor_id = ?, email = ?, note = ?, registration_date = ? WHERE id = ?', 
+    [name, instructorId, email, note, registrationDate, id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Student not found' });
+      return;
+    }
+    
+    // Get updated student data
+    db.get('SELECT s.*, i.name as instructor_name FROM students s LEFT JOIN instructors i ON s.instructor_id = i.id WHERE s.id = ?', 
+      [id], (err, row) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      if (!row) {
+        res.status(404).json({ error: 'Student not found' });
+        return;
+      }
+      
+      res.json({
+        id: row.id,
+        name: row.name,
+        instructor_id: row.instructor_id,
+        instructorId: row.instructor_id, // for backward compatibility
+        member_number: row.member_number,
+        memberNumber: row.member_number, // for backward compatibility
+        email: row.email,
+        note: row.note,
+        registration_date: row.registration_date,
+        registrationDate: row.registration_date, // for backward compatibility
+        created_at: row.created_at,
+        instructor_name: row.instructor_name
+      });
+    });
+  });
+});
+
+// Delete student
+app.delete('/api/students/:id', (req, res) => {
+  if (!db) {
+    res.status(500).json({ error: 'Database not initialized' });
+    return;
+  }
+  
+  const { id } = req.params;
+  
+  db.run('DELETE FROM students WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (this.changes === 0) {
+      res.status(404).json({ error: 'Student not found' });
+      return;
+    }
+    
+    res.json({ message: 'Student deleted successfully' });
+  });
+});
+
 // Get weekly checks
 app.get('/api/weekly/:weekKey', (req, res) => {
   if (!db) {
