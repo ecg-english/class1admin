@@ -248,49 +248,62 @@ app.put('/api/students/:id', (req, res) => {
   const { id } = req.params;
   const { name, instructorId, email, note, registrationDate } = req.body;
   
-  if (!name) {
-    res.status(400).json({ error: 'Name is required' });
-    return;
-  }
-  
-  db.run('UPDATE students SET name = ?, instructor_id = ?, email = ?, note = ?, registration_date = ? WHERE id = ?', 
-    [name, instructorId, email, note, registrationDate, id], function(err) {
+  // まず既存の生徒データを取得
+  db.get('SELECT * FROM students WHERE id = ?', [id], (err, existingStudent) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     
-    if (this.changes === 0) {
+    if (!existingStudent) {
       res.status(404).json({ error: 'Student not found' });
       return;
     }
     
-    // Get updated student data
-    db.get('SELECT s.*, i.name as instructor_name FROM students s LEFT JOIN instructors i ON s.instructor_id = i.id WHERE s.id = ?', 
-      [id], (err, row) => {
+    // 更新データを準備（空の場合は既存データを使用）
+    const updateData = {
+      name: name || existingStudent.name,
+      instructor_id: instructorId || existingStudent.instructor_id,
+      email: email !== undefined ? email : existingStudent.email,
+      note: note !== undefined ? note : existingStudent.note,
+      registration_date: registrationDate || existingStudent.registration_date
+    };
+    
+    // データベースを更新
+    db.run('UPDATE students SET name = ?, instructor_id = ?, email = ?, note = ?, registration_date = ? WHERE id = ?', 
+      [updateData.name, updateData.instructor_id, updateData.email, updateData.note, updateData.registration_date, id], function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      if (!row) {
-        res.status(404).json({ error: 'Student not found' });
-        return;
-      }
-      
-      res.json({
-        id: row.id,
-        name: row.name,
-        instructor_id: row.instructor_id,
-        instructorId: row.instructor_id, // for backward compatibility
-        member_number: row.member_number,
-        memberNumber: row.member_number, // for backward compatibility
-        email: row.email,
-        note: row.note,
-        registration_date: row.registration_date,
-        registrationDate: row.registration_date, // for backward compatibility
-        created_at: row.created_at,
-        instructor_name: row.instructor_name
+      // 更新後のデータを取得
+      db.get('SELECT s.*, i.name as instructor_name FROM students s LEFT JOIN instructors i ON s.instructor_id = i.id WHERE s.id = ?', 
+        [id], (err, row) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        if (!row) {
+          res.status(404).json({ error: 'Student not found' });
+          return;
+        }
+        
+        res.json({
+          id: row.id,
+          name: row.name,
+          instructor_id: row.instructor_id,
+          instructorId: row.instructor_id, // for backward compatibility
+          member_number: row.member_number,
+          memberNumber: row.member_number, // for backward compatibility
+          email: row.email,
+          note: row.note,
+          registration_date: row.registration_date,
+          registrationDate: row.registration_date, // for backward compatibility
+          created_at: row.created_at,
+          instructor_name: row.instructor_name
+        });
       });
     });
   });
